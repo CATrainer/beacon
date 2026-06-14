@@ -1,0 +1,10 @@
+# Normalise line endings to LF in the repo. Critical for shell scripts that run
+# inside the Linux containers (CRLF would break the shebang).
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
+Dockerfile text eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
