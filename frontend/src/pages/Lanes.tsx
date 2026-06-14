@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { GeoCheckLane } from "../components/GeoCheckLane";
 import { ManualAdd } from "../components/ManualAdd";
 import { ReScore } from "../components/ReScore";
 import { ResearchLane } from "../components/ResearchLane";
@@ -70,6 +71,7 @@ export function Lanes() {
               <ManualAdd laneId={lane.id} />
               <ReScore laneId={lane.id} />
               <ResearchLane laneId={lane.id} />
+              <GeoCheckLane laneId={lane.id} />
               <button
                 className="btn-danger"
                 onClick={() => {

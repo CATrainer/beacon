@@ -110,6 +110,40 @@ def test_research_estimate_and_trigger(client, auth_headers, db, lane, monkeypat
     assert r.json()["status"] == "queued"
 
 
+def test_geo_disclaimer_and_trigger(client, auth_headers, db, lane, monkeypatch):
+    disc = client.get("/api/geo/disclaimer", headers=auth_headers)
+    assert disc.status_code == 200
+    assert "screenshots" in disc.json()["disclaimer"].lower()
+
+    lead = Lead(
+        lane_id=lane.id,
+        company="Geo Co",
+        domain="geo.com",
+        website="https://geo.com",
+        dedupe_key="domain:geo.com",
+        stage=LeadStage.ENRICHED,
+        final_score=70.0,
+    )
+    db.add(lead)
+    db.commit()
+
+    est = client.get(f"/api/lanes/{lane.id}/geo/estimate?top_n=5", headers=auth_headers)
+    assert est.status_code == 200
+    assert est.json()["lead_count"] >= 1
+
+    async def _fake_enqueue(*args, **kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr("app.api.sources.enqueue", _fake_enqueue)
+    r = client.post(
+        f"/api/lanes/{lane.id}/geo",
+        json={"top_n": 5, "force_fixtures": True},
+        headers=auth_headers,
+    )
+    assert r.status_code == 202, r.text
+    assert r.json()["type"] == "geo_check"
+
+
 def test_lead_detail_includes_source_hits(client, auth_headers, db, lane):
     from app.models.lead import SourceHit
 

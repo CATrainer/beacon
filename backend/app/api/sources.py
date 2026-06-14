@@ -14,7 +14,15 @@ from app.models.job import Job
 from app.models.lane import Lane
 from app.models.lead import Lead
 from app.queue import enqueue
-from app.schemas.job import CostEstimate, JobOut, ResearchRequest, SourceRunRequest
+from app.schemas.job import (
+    CostEstimate,
+    GeoRequest,
+    JobOut,
+    ResearchRequest,
+    SourceRunRequest,
+)
+from app.services.geo import GEO_DISCLAIMER, execute_geo_job, select_geo_targets
+from app.services.geo import PER_LEAD_ESTIMATE_USD as GEO_PER_LEAD_USD
 from app.services.research import (
     PER_LEAD_ESTIMATE_USD,
     execute_research_job,
@@ -150,4 +158,61 @@ async def run_research(
     queued = await enqueue("run_research_job", job.id)
     if not queued:
         background.add_task(execute_research_job, job.id)
+    return JobOut.model_validate(job)
+
+
+@router.get("/lanes/{lane_id}/geo/estimate", response_model=CostEstimate)
+def geo_estimate(
+    lane_id: int, top_n: int | None = None, db: Session = Depends(get_db)
+) -> CostEstimate:
+    lane = db.get(Lane, lane_id)
+    if lane is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lane not found")
+    n = top_n or settings.research_top_n_default
+    count = len(select_geo_targets(db, lane_id, n))
+    return CostEstimate(
+        lead_count=count,
+        per_lead_usd=GEO_PER_LEAD_USD,
+        estimated_usd=round(count * GEO_PER_LEAD_USD, 2),
+    )
+
+
+@router.get("/geo/disclaimer")
+def geo_disclaimer() -> dict:
+    """The plain-language caveat the UI must show (§4b)."""
+    return {"disclaimer": GEO_DISCLAIMER}
+
+
+@router.post(
+    "/lanes/{lane_id}/geo", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED
+)
+async def run_geo(
+    lane_id: int,
+    payload: GeoRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """Stage-4b GEO gap pre-check — triage for ranking only (§4b). Gated to top-N."""
+    lane = db.get(Lane, lane_id)
+    if lane is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lane not found")
+    if payload.lead_ids:
+        valid = db.query(Lead.id).filter(
+            Lead.id.in_(payload.lead_ids),
+            Lead.lane_id == lane_id,
+            Lead.stage != LeadStage.REJECTED,
+        ).all()
+        params = {"lead_ids": [r[0] for r in valid], "force_fixtures": payload.force_fixtures}
+    else:
+        params = {
+            "top_n": payload.top_n or settings.research_top_n_default,
+            "force_fixtures": payload.force_fixtures,
+        }
+    job = Job(type=JobType.GEO_CHECK, lane_id=lane_id, status=JobStatus.QUEUED, params=params)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    queued = await enqueue("run_geo_job", job.id)
+    if not queued:
+        background.add_task(execute_geo_job, job.id)
     return JobOut.model_validate(job)

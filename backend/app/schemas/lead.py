@@ -6,7 +6,13 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.models.enums import ContactSource, EmailConfidence, LeadStage, LeadStatus
+from app.models.enums import (
+    ContactSource,
+    EmailConfidence,
+    GeoHookType,
+    LeadStage,
+    LeadStatus,
+)
 
 
 class LeadListItem(BaseModel):
@@ -77,6 +83,21 @@ class ContactOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class GeoCheckOut(BaseModel):
+    id: int
+    engine: str
+    query: str
+    prospect_named: bool
+    prospect_recommended: bool
+    competitors: list
+    cited_sources: list
+    hook_type: GeoHookType | None
+    severity: float | None
+    checked_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class LeadDetail(LeadListItem):
     reject_overridden: bool
     notes: str | None
@@ -84,3 +105,4 @@ class LeadDetail(LeadListItem):
     source_hits: list[SourceHitOut]
     research_brief: ResearchBriefOut | None = None
     contact: ContactOut | None = None
+    geo_checks: list[GeoCheckOut] = []

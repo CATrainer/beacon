@@ -92,7 +92,11 @@ the per-slice checklist live in **[CLAUDE.md](CLAUDE.md)**.
   Brief via the Anthropic API) + contact email waterfall (research → pattern →
   verification backstop → LinkedIn-first) with HIGH/MEDIUM/LOW confidence. Gated
   to top-N / on-demand with a cost estimate. Lead detail shows brief + contact.
-- ⏳ Slices 5–7 (the rest of the MVP) in progress.
+- ✅ **Slice 5** — Stage-4b GEO gap pre-check: runs buyer-intent queries through
+  Perplexity/OpenAI/Gemini (graceful degradation; fixtures when no key), detects
+  whether the prospect is named/recommended + competitors, and feeds a gap
+  severity into the ranking. **Triage only — not the deliverable audit.**
+- ⏳ Slices 6–7 (the rest of the MVP) in progress.
 
 ---
 

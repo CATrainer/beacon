@@ -32,6 +32,13 @@ class ResearchRequest(BaseModel):
     lead_ids: list[int] | None = None
 
 
+class GeoRequest(BaseModel):
+    top_n: int | None = Field(default=None, ge=1, le=500)
+    lead_ids: list[int] | None = None
+    #: Use canned fixture results when no engine key is configured (demo/test).
+    force_fixtures: bool = False
+
+
 class CostEstimate(BaseModel):
     lead_count: int
     per_lead_usd: float

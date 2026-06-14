@@ -113,6 +113,18 @@ export function LeadDetail() {
     onError: (e) => alert(e instanceof ApiError ? e.message : "Research failed"),
   });
 
+  const [geoFixtures, setGeoFixtures] = useState(false);
+  const [geoJobId, setGeoJobId] = useState<number | null>(null);
+  const geo = useMutation({
+    mutationFn: () =>
+      api.post<Job>(`/api/lanes/${lead?.lane_id}/geo`, {
+        lead_ids: [Number(id)],
+        force_fixtures: geoFixtures,
+      }),
+    onSuccess: (job) => setGeoJobId(job.id),
+    onError: (e) => alert(e instanceof ApiError ? e.message : "GEO check failed"),
+  });
+
   if (isLoading) return <p className="text-sm text-slate-400">Loading…</p>;
   if (!lead) return <p className="text-sm text-red-700">Lead not found.</p>;
 
@@ -272,6 +284,84 @@ export function LeadDetail() {
           <p className="mt-1 text-sm text-slate-500">
             Not yet researched. Stage 4 spends API tokens, so run it on shortlisted leads.
           </p>
+        )}
+      </div>
+
+      {/* GEO pre-check (triage only) */}
+      <div className="card mt-4 p-4">
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            GEO gap pre-check
+          </h2>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={geoFixtures}
+                onChange={(e) => setGeoFixtures(e.target.checked)}
+              />
+              fixtures
+            </label>
+            <button className="btn-ghost" disabled={geo.isPending} onClick={() => geo.mutate()}>
+              {geo.isPending ? "Starting…" : "Run GEO check"}
+            </button>
+          </div>
+        </div>
+        <p className="mb-2 text-xs text-slate-400">
+          Triage for ranking & hook detection only — not the deliverable audit. The real evidence
+          is the screenshots you capture in the consumer apps during prep.
+        </p>
+        {geoJobId && (
+          <JobProgress
+            jobId={geoJobId}
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["lead", id] });
+              qc.invalidateQueries({ queryKey: ["leads"] });
+            }}
+          />
+        )}
+        {lead.geo_checks.length === 0 ? (
+          <p className="text-sm text-slate-500">Not yet checked.</p>
+        ) : (
+          <div className="space-y-2">
+            {lead.geo_checks.map((g) => (
+              <div key={g.id} className="rounded border border-line p-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="badge bg-slate-100 text-slate-600">{g.engine}</span>
+                  {g.hook_type && (
+                    <span
+                      className={`badge ${
+                        g.hook_type === "no_gap"
+                          ? "bg-slate-100 text-slate-500"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {g.hook_type} {g.severity != null ? `· sev ${g.severity}` : ""}
+                    </span>
+                  )}
+                </div>
+                {g.engine !== "none" && (
+                  <>
+                    <div className="mt-1 text-slate-600">“{g.query}”</div>
+                    <div className="mt-1 text-slate-500">
+                      named: {g.prospect_named ? "yes" : "no"} · recommended:{" "}
+                      {g.prospect_recommended ? "yes" : "no"}
+                    </div>
+                    {g.competitors.length > 0 && (
+                      <div className="mt-1">
+                        competitors:{" "}
+                        {g.competitors.map((c) => (
+                          <span key={c} className="badge ml-1 bg-amber-50 text-amber-800">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

@@ -63,7 +63,7 @@ backend/
     adapters/          base (registry), cqc, atol, google_places,
                        directory_ingest, manual_paste, fixtures/
     services/          http, dedupe, qualification, sourcing, scoring, research,
-                       contacts, email_resolver, ai, companies_house
+                       contacts, email_resolver, geo, ai, companies_house
     worker.py / queue.py   arq worker + enqueue helper
     seeds/lanes.py     Default Clinics & Travel lanes
     scripts/           seed_user.py, seed_lanes.py, seed_dev_user.py
@@ -75,7 +75,8 @@ frontend/
     lib/api.ts         Fetch wrapper (JWT, errors, OAuth2 login)
     lib/auth.tsx       Auth context
     types.ts           API types (mirror backend schemas)
-    components/        Layout, JobProgress, RunSources, ManualAdd
+    components/        Layout, JobProgress, RunSources, ManualAdd, ReScore,
+                       ResearchLane, GeoCheckLane
     pages/             Login, Queue, Lanes, LaneEditor, LeadDetail
 docker-compose.yml
 docs/                  SETUP, DEPLOYMENT, MAINTENANCE
@@ -91,24 +92,26 @@ JSONB, and a `dedupe_key` (unique per lane).
 
 ## Current state
 
-**Slice 4 complete** — Stage-4a research agent (`app/services/research.py`):
-fetches up to 6 prospect pages (robots/rate-limited), extracts emails + LinkedIn
-deterministically, and synthesises a Research Brief via Anthropic (positioning,
-high-ticket services, decision-maker cross-checked vs CH directors, human hook,
-marketing sophistication). Contact waterfall (`app/services/contacts.py`):
-research email → pattern inference → verification backstop
-(`app/services/email_resolver.py`, swappable, opt-in) → LinkedIn-first, tagged
-HIGH/MEDIUM/LOW. Reachability feeds `final_score`. Gated to top-N / on-demand
-(`POST /lanes/{id}/research`, `GET .../research/estimate` for cost). Lead detail
-shows brief + contact; per-lead "Research this lead" + per-lane "Research top-N".
-Verified live: real clinic → accurate brief, HIGH-confidence email, final 92.
-Backend: 38 tests pass, ruff clean; frontend builds.
+**Slice 5 complete** — Stage-4b GEO gap pre-check (`app/services/geo.py`): runs the
+lane's buyer-intent queries (templates filled with the lead's location +
+high-ticket service) through engine APIs (Perplexity/OpenAI/Gemini) behind
+graceful degradation; an LLM extraction classifies named/recommended/competitors/
+cited-sources; `severity_and_hook` → gap severity + hook type (absence /
+weak_presence / no_gap), aggregated into `gap_score` which feeds `final_score`.
+**Triage only, never the deliverable** — disclaimer enforced in code (`GEO_DISCLAIMER`),
+API (`GET /api/geo/disclaimer`), and UI. No engine key → graceful no-op (no
+fabricated gap) unless `force_fixtures`. Gated to top-N / on-demand
+(`POST /lanes/{id}/geo`, `.../geo/estimate`). New GEO_CHECK job + worker fn. Lead
+detail shows GEO results. Verified live (fixtures): gap 90 → final recomputed.
+Backend: 43 tests pass, ruff clean; frontend builds.
 
-Earlier: Slice 3 — Stage-3 scoring + ranked queue; Slice 2 — adapters + Stage-2
-qualification + worker; Slice 1 — scaffold/auth/lanes.
+Earlier: Slice 4 — Stage-4a research agent (`research.py`) + contact waterfall
+(`contacts.py` / `email_resolver.py`), reachability → final; Slice 3 — Stage-3
+scoring + ranked queue; Slice 2 — adapters + Stage-2 qualification + worker;
+Slice 1 — scaffold/auth/lanes.
 
-Next: **Slice 5** — Stage-4b GEO gap pre-check (Perplexity/OpenAI/Gemini, degrade
-gracefully) → gap severity + hook type into the ranking.
+Next: **Slice 6** — prep workflow screen (audit-query copy-out, screenshot
+upload, draft generation/edit, approve → queue).
 
 ### Adapters & background work (slice 2)
 - Adapter contract + registry: `app/adapters/base.py`. Add a source = new class
@@ -129,7 +132,7 @@ gracefully) → gap severity + hook type into the ranking.
 - [x] 2 — Stage 1–2: primary adapters per lane + qualification + job runner.
 - [x] 3 — Stage 3 scoring + queue ranking UI with score breakdowns.
 - [x] 4 — Stage 4a research agent + contact waterfall.
-- [ ] 5 — Stage 4b GEO pre-check + gap severity into ranking.
+- [x] 5 — Stage 4b GEO pre-check + gap severity into ranking.
 - [ ] 6 — Prep workflow screen (checklist, query copy-out, screenshot upload, drafting).
 - [ ] 7 — Gmail-draft sending + send queue + CRM/pipeline + activity log.
 - [ ] 8–10 — follow-ups/booking, managed-send, directory/manual adapters & polish.

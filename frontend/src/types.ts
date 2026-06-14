@@ -160,6 +160,21 @@ export interface Contact {
   is_primary: boolean;
 }
 
+export type GeoHookType = "absence" | "misrepresentation" | "weak_presence" | "no_gap";
+
+export interface GeoCheck {
+  id: number;
+  engine: string;
+  query: string;
+  prospect_named: boolean;
+  prospect_recommended: boolean;
+  competitors: string[];
+  cited_sources: string[];
+  hook_type: GeoHookType | null;
+  severity: number | null;
+  checked_at: string;
+}
+
 export interface LeadDetail extends LeadListItem {
   reject_overridden: boolean;
   notes: string | null;
@@ -167,6 +182,7 @@ export interface LeadDetail extends LeadListItem {
   source_hits: SourceHit[];
   research_brief: ResearchBrief | null;
   contact: Contact | null;
+  geo_checks: GeoCheck[];
 }
 
 export interface CostEstimate {
