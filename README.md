@@ -96,7 +96,10 @@ the per-slice checklist live in **[CLAUDE.md](CLAUDE.md)**.
   Perplexity/OpenAI/Gemini (graceful degradation; fixtures when no key), detects
   whether the prospect is named/recommended + competitors, and feeds a gap
   severity into the ranking. **Triage only — not the deliverable audit.**
-- ⏳ Slices 6–7 (the rest of the MVP) in progress.
+- ✅ **Slice 6** — human-in-the-loop prep screen: copy the exact audit queries,
+  upload a screenshot per query, AI-draft touch-1/2/3 (§8 constraints, edit
+  inline), then approve → send queue.
+- ⏳ Slice 7 (final MVP slice) in progress.
 
 ---
 

@@ -175,6 +175,33 @@ export interface GeoCheck {
   checked_at: string;
 }
 
+export type EmailStatus = "draft" | "queued" | "sent" | "replied" | "cancelled";
+
+export interface EmailItem {
+  id: number;
+  touch_no: number;
+  subject: string | null;
+  body: string | null;
+  status: EmailStatus;
+  scheduled_for: string | null;
+  sent_at: string | null;
+  gmail_thread_id: string | null;
+  gmail_draft_id: string | null;
+}
+
+export interface Evidence {
+  id: number;
+  query: string;
+  engine: string | null;
+  screenshot_path: string;
+  uploaded_at: string;
+}
+
+export interface AuditQueries {
+  queries: string[];
+  engines: string[];
+}
+
 export interface LeadDetail extends LeadListItem {
   reject_overridden: boolean;
   notes: string | null;
@@ -183,6 +210,8 @@ export interface LeadDetail extends LeadListItem {
   research_brief: ResearchBrief | null;
   contact: Contact | null;
   geo_checks: GeoCheck[];
+  evidence: Evidence[];
+  emails: EmailItem[];
 }
 
 export interface CostEstimate {

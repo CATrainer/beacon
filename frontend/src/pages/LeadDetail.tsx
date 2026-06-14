@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { JobProgress } from "../components/JobProgress";
+import { PrepChecklist } from "../components/PrepChecklist";
 import { ApiError, api } from "../lib/api";
 import type { EmailConfidence, Job, LeadDetail as LeadDetailType } from "../types";
 
@@ -364,6 +365,8 @@ export function LeadDetail() {
           </div>
         )}
       </div>
+
+      <PrepChecklist lead={lead} />
 
       <h2 className="mt-5 mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
         Source hits ({lead.source_hits.length})

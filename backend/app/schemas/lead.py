@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.models.enums import (
     ContactSource,
     EmailConfidence,
+    EmailStatus,
     GeoHookType,
     LeadStage,
     LeadStatus,
@@ -98,6 +99,40 @@ class GeoCheckOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class EvidenceOut(BaseModel):
+    id: int
+    query: str
+    engine: str | None
+    screenshot_path: str
+    uploaded_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class EmailOut(BaseModel):
+    id: int
+    touch_no: int
+    subject: str | None
+    body: str | None
+    status: EmailStatus
+    scheduled_for: datetime | None
+    sent_at: datetime | None
+    gmail_thread_id: str | None
+    gmail_draft_id: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class EmailUpdate(BaseModel):
+    subject: str | None = None
+    body: str | None = None
+
+
+class AuditQueriesOut(BaseModel):
+    queries: list[str]
+    engines: list[str]
+
+
 class LeadDetail(LeadListItem):
     reject_overridden: bool
     notes: str | None
@@ -106,3 +141,5 @@ class LeadDetail(LeadListItem):
     research_brief: ResearchBriefOut | None = None
     contact: ContactOut | None = None
     geo_checks: list[GeoCheckOut] = []
+    evidence: list[EvidenceOut] = []
+    emails: list[EmailOut] = []

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api import system
@@ -34,6 +36,10 @@ app.add_middleware(
 # /api/health and /api/status (no auth) + the authed API surface.
 app.include_router(system.router, prefix="/api")
 app.include_router(api_router)
+
+# Serve uploaded screenshots (prep evidence). Created on startup if absent.
+os.makedirs(settings.uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.uploads_dir), name="uploads")
 
 
 @app.get("/")

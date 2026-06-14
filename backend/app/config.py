@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     cal_link: str = ""
     cal_webhook_secret: str = ""
 
+    # --- Storage ------------------------------------------------------------
+    uploads_dir: str = "data/uploads"
+
     # --- Fetching etiquette -------------------------------------------------
     user_agent: str = "HeuricityBeacon/1.0; hello@heuricity.com"
     fetch_max_rps_per_host: float = Field(default=1.0)

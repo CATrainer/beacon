@@ -55,8 +55,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
+export const API_BASE = API_URL;
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  upload: <T>(path: string, form: FormData) =>
+    request<T>(path, { method: "POST", body: form }),
   post: <T>(path: string, body: unknown) =>
     request<T>(path, {
       method: "POST",
