@@ -1,0 +1,70 @@
+# Beacon — local development stack.
+# `docker compose up` boots the whole app (Postgres, Redis, API, web) with zero
+# external API keys required. Drop keys into a root `.env` to light up
+# integrations incrementally; infra wiring below always points at these services.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: beacon
+      POSTGRES_PASSWORD: beacon
+      POSTGRES_DB: beacon
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beacon -d beacon"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    # Optional: a root .env supplies API keys. Missing file is fine.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Infra wiring is forced here so it always targets the compose services,
+      # regardless of what a stray .env contains.
+      DATABASE_URL: postgresql+psycopg://beacon:beacon@db:5432/beacon
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: http://localhost:5173
+      APP_ENV: local
+      APP_RELOAD: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

@@ -1,0 +1,32 @@
+# Core web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Data / ORM / migrations
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg[binary]==3.2.3
+
+# Validation / settings
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+
+# Auth
+passlib==1.7.4
+# Pinned to 4.0.1: passlib 1.7.4 reads bcrypt.__about__ which 4.1+ removed,
+# producing a noisy (harmless) warning. 4.0.1 keeps logs clean.
+bcrypt==4.0.1
+pyjwt==2.10.1
+
+# HTTP / fetching / retries (used from Slice 2 onward)
+httpx==0.28.1
+tenacity==9.0.0
+beautifulsoup4==4.12.3
+
+# AI (Slice 4+)
+anthropic==0.42.0
+
+# Background worker queue (Slice 2+)
+arq==0.26.3
