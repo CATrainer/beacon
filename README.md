@@ -20,18 +20,24 @@ zero API keys.
 # 1. From the repo root, start everything (Postgres, Redis, API, web):
 docker compose up --build
 
-# 2. In a second terminal, create your login (one-time):
-docker compose exec backend python -m app.scripts.seed_user \
-  --email caleb@heuricity.com --name "Caleb Trainer"
-# (you'll be prompted for a password)
-
-# 3. Open the app:
+# 2. Open the app and sign in:
 #    Web UI   → http://localhost:5173
 #    API docs → http://localhost:8000/docs
+#
+#    Local auto-login (seeded automatically, local-only):
+#      email:    caleb@heuricity.com
+#      password: beacon-local
 ```
 
-The default **Clinics** and **Travel** lanes are seeded automatically on first
-boot. The queue is empty until sourcing lands (Build Order slice 2).
+The default **Clinics** and **Travel** lanes — and a local login — are seeded
+automatically on first boot, so there's nothing to run. The queue is empty until
+sourcing lands (Build Order slice 2).
+
+> Want your own credentials or to add Peter? Create a user any time:
+> ```
+> docker compose exec backend python -m app.scripts.seed_user \
+>   --email you@heuricity.com --name "Your Name"
+> ```
 
 > No API keys are required to run. As you obtain them (CQC, Google Places,
 > Anthropic, etc.), copy `.env.example` to `.env` in the repo root and fill them

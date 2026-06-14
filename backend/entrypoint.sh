@@ -31,6 +31,12 @@ alembic upgrade head
 echo "[entrypoint] seeding default lanes (idempotent)..."
 python -m app.scripts.seed_lanes || echo "[entrypoint] lane seed skipped/failed (non-fatal)"
 
+# Local-only convenience: seed a default login so you can sign in without a
+# manual step. No-op unless APP_ENV=local and DEV_AUTOSEED_* are set.
+if [ "${APP_ENV:-local}" = "local" ]; then
+  python -m app.scripts.seed_dev_user || echo "[entrypoint] dev autoseed skipped (non-fatal)"
+fi
+
 if [ "${APP_RELOAD:-0}" = "1" ]; then
   echo "[entrypoint] starting uvicorn (reload)..."
   exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

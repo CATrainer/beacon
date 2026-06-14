@@ -32,6 +32,13 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173"
 
+    # --- Local dev convenience ---------------------------------------------
+    # When APP_ENV=local and both are set, the entrypoint idempotently seeds
+    # this login so you can sign in without running a script. Ignored in prod.
+    dev_autoseed_email: str = ""
+    dev_autoseed_password: str = ""
+    dev_autoseed_name: str = "Dev User"
+
     # --- AI models ----------------------------------------------------------
     anthropic_api_key: str = ""
     model_default: str = "claude-sonnet-4-6"

@@ -44,6 +44,11 @@ services:
       CORS_ORIGINS: http://localhost:5173
       APP_ENV: local
       APP_RELOAD: "1"
+      # Local-only auto-login so you can sign in immediately at localhost:5173.
+      # These are dev conveniences, never used in production.
+      DEV_AUTOSEED_EMAIL: caleb@heuricity.com
+      DEV_AUTOSEED_PASSWORD: beacon-local
+      DEV_AUTOSEED_NAME: Caleb (local)
     ports:
       - "8000:8000"
     volumes:

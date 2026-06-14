@@ -24,16 +24,25 @@ This starts four services:
 On boot the backend runs migrations (`alembic upgrade head`) and idempotently
 seeds the default **Clinics** and **Travel** lanes.
 
-## Create your login (one-time)
+## Logging in
 
-No public signup. Seed yourself a user:
+For **local Docker**, a login is auto-seeded on first boot (set via
+`DEV_AUTOSEED_*` in `docker-compose.yml`, gated to `APP_ENV=local`):
+
+- email: `caleb@heuricity.com`
+- password: `beacon-local`
+
+No command needed. To create your own credentials, change Peter's, or add users
+(no public signup):
 
 ```bash
 docker compose exec backend python -m app.scripts.seed_user \
-  --email caleb@heuricity.com --name "Caleb Trainer"
+  --email you@heuricity.com --name "Your Name"
 ```
 
-Re-running with the same email updates the name/password. Repeat for Peter.
+Re-running with the same email updates that user's name/password. In production
+there is no auto-seed — create the first user with this script (see
+[DEPLOYMENT.md](DEPLOYMENT.md)).
 
 ## Environment variables
 
