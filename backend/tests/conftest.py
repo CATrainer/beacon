@@ -16,6 +16,26 @@ from app.main import app
 from app.models import Base, User
 
 
+@pytest.fixture(autouse=True)
+def _isolate_settings(monkeypatch):
+    """Keep tests hermetic regardless of any ambient .env — blank all external
+    integration keys so behaviour doesn't depend on the developer's environment."""
+    from app.config import settings
+
+    for attr in (
+        "anthropic_api_key",
+        "cqc_subscription_key",
+        "google_places_api_key",
+        "companies_house_api_key",
+        "perplexity_api_key",
+        "openai_api_key",
+        "gemini_api_key",
+        "hunter_api_key",
+        "email_resolver_provider",
+    ):
+        monkeypatch.setattr(settings, attr, "")
+
+
 @pytest.fixture(scope="session")
 def engine():
     eng = create_engine(
