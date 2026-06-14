@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ManualAdd } from "../components/ManualAdd";
 import { ReScore } from "../components/ReScore";
+import { ResearchLane } from "../components/ResearchLane";
 import { RunSources } from "../components/RunSources";
 import { ApiError, api } from "../lib/api";
 import type { Lane } from "../types";
@@ -68,6 +69,7 @@ export function Lanes() {
               <RunSources laneId={lane.id} />
               <ManualAdd laneId={lane.id} />
               <ReScore laneId={lane.id} />
+              <ResearchLane laneId={lane.id} />
               <button
                 className="btn-danger"
                 onClick={() => {

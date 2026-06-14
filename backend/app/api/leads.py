@@ -16,7 +16,13 @@ from app.core.deps import get_current_user
 from app.db import get_db
 from app.models.enums import ActivityType, LeadStage, LeadStatus
 from app.models.lead import ActivityLog, Lead
-from app.schemas.lead import LeadDetail, LeadListItem, LeadListResponse
+from app.schemas.lead import (
+    ContactOut,
+    LeadDetail,
+    LeadListItem,
+    LeadListResponse,
+    ResearchBriefOut,
+)
 
 router = APIRouter(prefix="/leads", tags=["leads"], dependencies=[Depends(get_current_user)])
 
@@ -61,12 +67,22 @@ def list_leads(
     )
 
 
+def _detail(lead: Lead) -> LeadDetail:
+    detail = LeadDetail.model_validate(lead)
+    if lead.research_briefs:
+        detail.research_brief = ResearchBriefOut.model_validate(lead.research_briefs[-1])
+    primary = next((c for c in lead.contacts if c.is_primary), None)
+    if primary is not None:
+        detail.contact = ContactOut.model_validate(primary)
+    return detail
+
+
 @router.get("/{lead_id}", response_model=LeadDetail)
 def get_lead(lead_id: int, db: Session = Depends(get_db)) -> LeadDetail:
     lead = db.get(Lead, lead_id)
     if lead is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lead not found")
-    return LeadDetail.model_validate(lead)
+    return _detail(lead)
 
 
 @router.post("/{lead_id}/override", response_model=LeadDetail)
@@ -92,4 +108,4 @@ def override_reject(lead_id: int, db: Session = Depends(get_db)) -> LeadDetail:
     )
     db.commit()
     db.refresh(lead)
-    return LeadDetail.model_validate(lead)
+    return _detail(lead)

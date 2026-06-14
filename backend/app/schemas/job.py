@@ -25,6 +25,19 @@ class SourceRunRequest(BaseModel):
     manual_entries: list[ManualEntry] | None = None
 
 
+class ResearchRequest(BaseModel):
+    #: Research the top-N leads by Stage-3 score (gating, §2). Ignored if lead_ids set.
+    top_n: int | None = Field(default=None, ge=1, le=500)
+    #: Research specific leads on-demand (e.g. operator opened/shortlisted them).
+    lead_ids: list[int] | None = None
+
+
+class CostEstimate(BaseModel):
+    lead_count: int
+    per_lead_usd: float
+    estimated_usd: float
+
+
 class JobOut(BaseModel):
     id: int
     type: JobType

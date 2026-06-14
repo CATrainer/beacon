@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     model_default: str = "claude-sonnet-4-6"
     model_high: str = "claude-opus-4-8"
     model_cheap: str = "claude-haiku-4-5"
+    # Stage 4 (expensive AI) auto-runs only on the top-N by Stage-3 score (§2).
+    research_top_n_default: int = 50
 
     # --- Source adapters ----------------------------------------------------
     cqc_subscription_key: str = ""

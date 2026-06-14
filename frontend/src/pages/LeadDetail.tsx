@@ -1,7 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { JobProgress } from "../components/JobProgress";
 import { ApiError, api } from "../lib/api";
-import type { LeadDetail as LeadDetailType } from "../types";
+import type { EmailConfidence, Job, LeadDetail as LeadDetailType } from "../types";
+
+function confidenceBadge(c: EmailConfidence | null) {
+  if (!c) return <span className="badge bg-slate-100 text-slate-500">LinkedIn-first</span>;
+  const tone =
+    c === "high"
+      ? "bg-green-100 text-green-800"
+      : c === "medium"
+        ? "bg-amber-100 text-amber-800"
+        : "bg-red-100 text-red-700";
+  return <span className={`badge ${tone}`}>{c} confidence</span>;
+}
 
 interface SignalRow {
   weight: number;
@@ -92,6 +105,14 @@ export function LeadDetail() {
     onError: (e) => alert(e instanceof ApiError ? e.message : "Override failed"),
   });
 
+  const [researchJobId, setResearchJobId] = useState<number | null>(null);
+  const research = useMutation({
+    mutationFn: () =>
+      api.post<Job>(`/api/lanes/${lead?.lane_id}/research`, { lead_ids: [Number(id)] }),
+    onSuccess: (job) => setResearchJobId(job.id),
+    onError: (e) => alert(e instanceof ApiError ? e.message : "Research failed"),
+  });
+
   if (isLoading) return <p className="text-sm text-slate-400">Loading…</p>;
   if (!lead) return <p className="text-sm text-red-700">Lead not found.</p>;
 
@@ -138,6 +159,121 @@ export function LeadDetail() {
       )}
 
       <ScoreBreakdown lead={lead} />
+
+      {/* Contact */}
+      <div className="card mt-4 p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Contact
+          </h2>
+          {lead.contact && confidenceBadge(lead.contact.email_confidence)}
+        </div>
+        {lead.contact ? (
+          <div className="space-y-1 text-sm">
+            <div>
+              {lead.contact.email ? (
+                <span className="font-mono">{lead.contact.email}</span>
+              ) : (
+                <span className="text-slate-500">No deliverable email — reach out on LinkedIn</span>
+              )}
+              {lead.contact.source && (
+                <span className="ml-2 text-xs text-slate-400">via {lead.contact.source}</span>
+              )}
+            </div>
+            {lead.contact.decision_maker_name && (
+              <div className="text-slate-600">{lead.contact.decision_maker_name}</div>
+            )}
+            {lead.contact.linkedin_url && (
+              <a
+                href={lead.contact.linkedin_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
+              >
+                LinkedIn
+              </a>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">Not yet resolved — run research.</p>
+        )}
+      </div>
+
+      {/* Research brief */}
+      <div className="card mt-4 p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Research brief
+          </h2>
+          <button
+            className="btn-ghost"
+            disabled={research.isPending}
+            onClick={() => research.mutate()}
+          >
+            {research.isPending ? "Starting…" : lead.research_brief ? "Re-research" : "Research this lead"}
+          </button>
+        </div>
+        {researchJobId && (
+          <JobProgress
+            jobId={researchJobId}
+            onDone={() => {
+              qc.invalidateQueries({ queryKey: ["lead", id] });
+              qc.invalidateQueries({ queryKey: ["leads"] });
+            }}
+          />
+        )}
+        {lead.research_brief ? (
+          <div className="mt-1 space-y-2 text-sm">
+            {lead.research_brief.summary && <p>{lead.research_brief.summary}</p>}
+            {lead.research_brief.decision_maker_name && (
+              <p>
+                <span className="text-slate-500">Decision-maker: </span>
+                {lead.research_brief.decision_maker_name}
+                {lead.research_brief.decision_maker_role
+                  ? ` — ${lead.research_brief.decision_maker_role}`
+                  : ""}
+              </p>
+            )}
+            {lead.research_brief.high_ticket_services.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {lead.research_brief.high_ticket_services.map((s) => (
+                  <span key={s} className="badge bg-blue-50 text-blue-700">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+            {lead.research_brief.human_hook && (
+              <p>
+                <span className="text-slate-500">Hook: </span>
+                {lead.research_brief.human_hook}
+              </p>
+            )}
+            {lead.research_brief.marketing_sophistication && (
+              <p>
+                <span className="text-slate-500">Marketing: </span>
+                {lead.research_brief.marketing_sophistication}
+              </p>
+            )}
+            {lead.research_brief.emails_found.length > 0 && (
+              <p className="text-xs text-slate-500">
+                Emails found: {lead.research_brief.emails_found.join(", ")}
+              </p>
+            )}
+            <p className="text-xs text-slate-400">
+              {lead.research_brief.pages_fetched.length} pages ·{" "}
+              {lead.research_brief.model_used ?? "no LLM"} ·{" "}
+              {lead.research_brief.cost_usd != null
+                ? `$${lead.research_brief.cost_usd.toFixed(3)}`
+                : "—"}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-slate-500">
+            Not yet researched. Stage 4 spends API tokens, so run it on shortlisted leads.
+          </p>
+        )}
+      </div>
 
       <h2 className="mt-5 mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
         Source hits ({lead.source_hits.length})

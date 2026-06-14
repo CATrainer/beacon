@@ -131,11 +131,48 @@ export interface SourceHit {
   fetched_at: string;
 }
 
+export type EmailConfidence = "high" | "medium" | "low";
+
+export interface ResearchBrief {
+  id: number;
+  summary: string | null;
+  specialisms: string | null;
+  high_ticket_services: string[];
+  decision_maker_name: string | null;
+  decision_maker_role: string | null;
+  human_hook: string | null;
+  marketing_sophistication: string | null;
+  emails_found: string[];
+  linkedin_url: string | null;
+  pages_fetched: string[];
+  model_used: string | null;
+  cost_usd: number | null;
+  created_at: string;
+}
+
+export interface Contact {
+  id: number;
+  email: string | null;
+  email_confidence: EmailConfidence | null;
+  source: string | null;
+  decision_maker_name: string | null;
+  linkedin_url: string | null;
+  is_primary: boolean;
+}
+
 export interface LeadDetail extends LeadListItem {
   reject_overridden: boolean;
   notes: string | null;
   created_at: string;
   source_hits: SourceHit[];
+  research_brief: ResearchBrief | null;
+  contact: Contact | null;
+}
+
+export interface CostEstimate {
+  lead_count: number;
+  per_lead_usd: number;
+  estimated_usd: number;
 }
 
 export interface ManualEntry {

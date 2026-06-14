@@ -7,7 +7,6 @@ small. Model per stage is config (`MODEL_DEFAULT`=Sonnet, `MODEL_HIGH`=Opus,
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -38,6 +37,9 @@ def get_client():
     return anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
 
+_EMIT_TOOL = "emit_result"
+
+
 def complete_json(
     *,
     model: str,
@@ -48,7 +50,9 @@ def complete_json(
 ) -> tuple[dict[str, Any], float]:
     """Run a structured-JSON completion. Returns (parsed_dict, cost_usd).
 
-    Uses output_config.format to constrain output to the given JSON schema.
+    Uses *forced tool use* (a single tool whose input_schema is the desired
+    shape, with tool_choice pinned to it) to constrain the output. This is stable
+    across SDK versions, so it doesn't depend on the newer output_config param.
     """
     client = get_client()
     resp = client.messages.create(
@@ -56,12 +60,19 @@ def complete_json(
         max_tokens=max_tokens,
         system=system,
         messages=[{"role": "user", "content": user}],
-        output_config={"format": {"type": "json_schema", "schema": schema}},
+        tools=[
+            {
+                "name": _EMIT_TOOL,
+                "description": "Return the structured result.",
+                "input_schema": schema,
+            }
+        ],
+        tool_choice={"type": "tool", "name": _EMIT_TOOL},
     )
-    text = next((b.text for b in resp.content if b.type == "text"), "{}")
     cost = estimate_cost(model, resp.usage.input_tokens, resp.usage.output_tokens)
-    try:
-        return json.loads(text), cost
-    except json.JSONDecodeError:
-        log.warning("complete_json: model returned non-JSON; returning empty")
-        return {}, cost
+    for block in resp.content:
+        if block.type == "tool_use" and block.name == _EMIT_TOOL:
+            data = block.input
+            return (data if isinstance(data, dict) else {}), cost
+    log.warning("complete_json: no tool_use block returned; returning empty")
+    return {}, cost

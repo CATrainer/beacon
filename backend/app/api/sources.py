@@ -6,13 +6,20 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.adapters import list_adapters
+from app.config import settings
 from app.core.deps import get_current_user
 from app.db import get_db
-from app.models.enums import JobStatus, JobType
+from app.models.enums import JobStatus, JobType, LeadStage
 from app.models.job import Job
 from app.models.lane import Lane
+from app.models.lead import Lead
 from app.queue import enqueue
-from app.schemas.job import JobOut, SourceRunRequest
+from app.schemas.job import CostEstimate, JobOut, ResearchRequest, SourceRunRequest
+from app.services.research import (
+    PER_LEAD_ESTIMATE_USD,
+    execute_research_job,
+    select_research_targets,
+)
 from app.services.scoring import execute_score_job
 from app.services.sourcing import execute_source_job
 
@@ -90,4 +97,57 @@ async def rescore(
     queued = await enqueue("run_score_job", job.id)
     if not queued:
         background.add_task(execute_score_job, job.id)
+    return JobOut.model_validate(job)
+
+
+@router.get("/lanes/{lane_id}/research/estimate", response_model=CostEstimate)
+def research_estimate(
+    lane_id: int,
+    top_n: int | None = None,
+    db: Session = Depends(get_db),
+) -> CostEstimate:
+    """Pre-run cost estimate for Stage-4 research (§9)."""
+    lane = db.get(Lane, lane_id)
+    if lane is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lane not found")
+    n = top_n or settings.research_top_n_default
+    count = len(select_research_targets(db, lane_id, n))
+    return CostEstimate(
+        lead_count=count,
+        per_lead_usd=PER_LEAD_ESTIMATE_USD,
+        estimated_usd=round(count * PER_LEAD_ESTIMATE_USD, 2),
+    )
+
+
+@router.post(
+    "/lanes/{lane_id}/research", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED
+)
+async def run_research(
+    lane_id: int,
+    payload: ResearchRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """Stage-4a research — gated to top-N or specific leads (§2/§4a)."""
+    lane = db.get(Lane, lane_id)
+    if lane is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lane not found")
+    if payload.lead_ids:
+        # Guard against researching rejected leads by id.
+        valid = db.query(Lead.id).filter(
+            Lead.id.in_(payload.lead_ids),
+            Lead.lane_id == lane_id,
+            Lead.stage != LeadStage.REJECTED,
+        ).all()
+        params = {"lead_ids": [r[0] for r in valid]}
+    else:
+        params = {"top_n": payload.top_n or settings.research_top_n_default}
+
+    job = Job(type=JobType.RESEARCH, lane_id=lane_id, status=JobStatus.QUEUED, params=params)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    queued = await enqueue("run_research_job", job.id)
+    if not queued:
+        background.add_task(execute_research_job, job.id)
     return JobOut.model_validate(job)

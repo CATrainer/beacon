@@ -88,7 +88,11 @@ the per-slice checklist live in **[CLAUDE.md](CLAUDE.md)**.
 - ✅ **Slice 3** — Stage-3 fit/wealth scoring from cheap signals (Places metadata
   + homepage scan); the queue ranks by final score and each lead shows its score
   breakdown. Tune weights per lane, then "Re-score".
-- ⏳ Slices 4–7 (the rest of the MVP) in progress.
+- ✅ **Slice 4** — Stage-4a AI research agent (reads prospect pages → Research
+  Brief via the Anthropic API) + contact email waterfall (research → pattern →
+  verification backstop → LinkedIn-first) with HIGH/MEDIUM/LOW confidence. Gated
+  to top-N / on-demand with a cost estimate. Lead detail shows brief + contact.
+- ⏳ Slices 5–7 (the rest of the MVP) in progress.
 
 ---
 

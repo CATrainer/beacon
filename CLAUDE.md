@@ -22,8 +22,11 @@ only. Built in working slices per the design doc's Build Order. The MVP is slice
 - **Background jobs (slice 2+):** `arq` on Redis.
 - **AI (slice 4+):** `anthropic` SDK. Model per stage is config (`MODEL_DEFAULT`
   = Sonnet `claude-sonnet-4-6`, `MODEL_HIGH` = Opus `claude-opus-4-8`,
-  `MODEL_CHEAP` = Haiku `claude-haiku-4-5`). Use adaptive thinking + structured
-  output (`output_config.format` / `messages.parse`).
+  `MODEL_CHEAP` = Haiku `claude-haiku-4-5`). **Route all JSON extraction through
+  `app/services/ai.py::complete_json`**, which uses *forced tool use* (one tool
+  whose `input_schema` is the desired shape + `tool_choice` pinned to it). This is
+  stable across SDK versions; the newer `output_config`/`messages.parse` API is
+  NOT supported by the pinned SDK — don't reintroduce it without bumping the SDK.
 - **Run:** Docker Compose locally (db, redis, backend, frontend). Prod: Railway
   (backend/pg/redis) + Vercel (frontend).
 
@@ -59,7 +62,8 @@ backend/
     api/               system, auth, lanes, leads, sources, jobs, router
     adapters/          base (registry), cqc, atol, google_places,
                        directory_ingest, manual_paste, fixtures/
-    services/          http, dedupe, qualification, sourcing, scoring, ai, companies_house
+    services/          http, dedupe, qualification, sourcing, scoring, research,
+                       contacts, email_resolver, ai, companies_house
     worker.py / queue.py   arq worker + enqueue helper
     seeds/lanes.py     Default Clinics & Travel lanes
     scripts/           seed_user.py, seed_lanes.py, seed_dev_user.py
@@ -87,21 +91,24 @@ JSONB, and a `dedupe_key` (unique per lane).
 
 ## Current state
 
-**Slice 3 complete** — Stage-3 fit/wealth scoring (`app/services/scoring.py`):
-lane-weighted signals (high-ticket keywords, reviews, rating, booking funnel,
-blog, ad tracking, premium/bespoke language, AITO/ATOL membership) from Places
-metadata + one lightweight homepage fetch; sub-scores stored in
-`score_breakdown`; `final_score` blends present components via `final_weights`.
-Scoring runs at the end of a sourcing run and via a re-score job
-(`POST /lanes/{id}/rescore`). Queue ranks by final score with a min-score filter;
-lead detail shows the breakdown. Verified live: real clinics with marketing
-signals top the ranking. Backend: 28 tests pass, ruff clean; frontend builds.
+**Slice 4 complete** — Stage-4a research agent (`app/services/research.py`):
+fetches up to 6 prospect pages (robots/rate-limited), extracts emails + LinkedIn
+deterministically, and synthesises a Research Brief via Anthropic (positioning,
+high-ticket services, decision-maker cross-checked vs CH directors, human hook,
+marketing sophistication). Contact waterfall (`app/services/contacts.py`):
+research email → pattern inference → verification backstop
+(`app/services/email_resolver.py`, swappable, opt-in) → LinkedIn-first, tagged
+HIGH/MEDIUM/LOW. Reachability feeds `final_score`. Gated to top-N / on-demand
+(`POST /lanes/{id}/research`, `GET .../research/estimate` for cost). Lead detail
+shows brief + contact; per-lead "Research this lead" + per-lane "Research top-N".
+Verified live: real clinic → accurate brief, HIGH-confidence email, final 92.
+Backend: 38 tests pass, ruff clean; frontend builds.
 
-Earlier: Slice 2 — adapters (CQC/ATOL/Places/directory/manual) + CH enrichment +
-dedupe/merge + Stage-2 qualification + arq worker; Slice 1 — scaffold/auth/lanes.
+Earlier: Slice 3 — Stage-3 scoring + ranked queue; Slice 2 — adapters + Stage-2
+qualification + worker; Slice 1 — scaffold/auth/lanes.
 
-Next: **Slice 4** — Stage-4a research agent (visits prospect pages → Research
-Brief via Anthropic) + contact email waterfall.
+Next: **Slice 5** — Stage-4b GEO gap pre-check (Perplexity/OpenAI/Gemini, degrade
+gracefully) → gap severity + hook type into the ranking.
 
 ### Adapters & background work (slice 2)
 - Adapter contract + registry: `app/adapters/base.py`. Add a source = new class
@@ -121,7 +128,7 @@ Brief via Anthropic) + contact email waterfall.
 - [x] 1 — Skeleton + data model + auth + Lane CRUD UI; empty queue.
 - [x] 2 — Stage 1–2: primary adapters per lane + qualification + job runner.
 - [x] 3 — Stage 3 scoring + queue ranking UI with score breakdowns.
-- [ ] 4 — Stage 4a research agent + contact waterfall.
+- [x] 4 — Stage 4a research agent + contact waterfall.
 - [ ] 5 — Stage 4b GEO pre-check + gap severity into ranking.
 - [ ] 6 — Prep workflow screen (checklist, query copy-out, screenshot upload, drafting).
 - [ ] 7 — Gmail-draft sending + send queue + CRM/pipeline + activity log.

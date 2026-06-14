@@ -81,6 +81,35 @@ def test_override_non_rejected_conflicts(client, auth_headers, db, lane):
     assert resp.status_code == 409
 
 
+def test_research_estimate_and_trigger(client, auth_headers, db, lane, monkeypatch):
+    lead = Lead(
+        lane_id=lane.id,
+        company="A Clinic",
+        domain="a.com",
+        website="https://a.com",
+        dedupe_key="domain:a.com",
+        stage=LeadStage.SCORED,
+        final_score=80.0,
+    )
+    db.add(lead)
+    db.commit()
+
+    est = client.get(f"/api/lanes/{lane.id}/research/estimate?top_n=5", headers=auth_headers)
+    assert est.status_code == 200
+    body = est.json()
+    assert body["lead_count"] >= 1
+    assert body["estimated_usd"] == round(body["lead_count"] * body["per_lead_usd"], 2)
+
+    async def _fake_enqueue(*args, **kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr("app.api.sources.enqueue", _fake_enqueue)
+    r = client.post(f"/api/lanes/{lane.id}/research", json={"top_n": 5}, headers=auth_headers)
+    assert r.status_code == 202, r.text
+    assert r.json()["type"] == "research"
+    assert r.json()["status"] == "queued"
+
+
 def test_lead_detail_includes_source_hits(client, auth_headers, db, lane):
     from app.models.lead import SourceHit
 

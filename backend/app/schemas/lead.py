@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.models.enums import LeadStage, LeadStatus
+from app.models.enums import ContactSource, EmailConfidence, LeadStage, LeadStatus
 
 
 class LeadListItem(BaseModel):
@@ -46,8 +46,41 @@ class SourceHitOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ResearchBriefOut(BaseModel):
+    id: int
+    summary: str | None
+    specialisms: str | None
+    high_ticket_services: list
+    decision_maker_name: str | None
+    decision_maker_role: str | None
+    human_hook: str | None
+    marketing_sophistication: str | None
+    emails_found: list
+    linkedin_url: str | None
+    pages_fetched: list
+    model_used: str | None
+    cost_usd: float | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ContactOut(BaseModel):
+    id: int
+    email: str | None
+    email_confidence: EmailConfidence | None
+    source: ContactSource | None
+    decision_maker_name: str | None
+    linkedin_url: str | None
+    is_primary: bool
+
+    model_config = {"from_attributes": True}
+
+
 class LeadDetail(LeadListItem):
     reject_overridden: bool
     notes: str | None
     created_at: datetime
     source_hits: list[SourceHitOut]
+    research_brief: ResearchBriefOut | None = None
+    contact: ContactOut | None = None
