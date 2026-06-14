@@ -1,0 +1,30 @@
+[
+  {
+    "company_name": "Summit & Savannah Travel",
+    "website": "https://summitsavannah.example.com",
+    "location": "London",
+    "source_ref": "ATOL-11001",
+    "raw_meta": {"atol_holder": true}
+  },
+  {
+    "company_name": "Cobalt Coast Voyages",
+    "website": "https://cobaltcoast.example.com",
+    "location": "Brighton",
+    "source_ref": "ATOL-11002",
+    "raw_meta": {"atol_holder": true}
+  },
+  {
+    "company_name": "Meridian Private Travel",
+    "website": "https://meridianprivate.example.com",
+    "location": "Edinburgh",
+    "source_ref": "ATOL-11003",
+    "raw_meta": {"atol_holder": true}
+  },
+  {
+    "company_name": "Lowcost Sun Packages",
+    "website": "https://lowcostsun.example.com",
+    "location": "Manchester",
+    "source_ref": "ATOL-11004",
+    "raw_meta": {"atol_holder": true}
+  }
+]

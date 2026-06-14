@@ -46,16 +46,23 @@ A change that adds an env var but not its row in SETUP.md, its line in
 ## How to add a source adapter (slice 2+ pattern)
 
 A new source must be **a new class + a registry entry, nothing else** (design doc
-§3). When the adapter framework lands in slice 2, the steps will be:
+§3). Concrete steps (framework lives in `backend/app/adapters/base.py`):
 
-1. Implement the `SourceAdapter` protocol (`key`, `fetch(lane, limit) -> list[RawCandidate]`)
-   in a new file under `backend/app/adapters/`.
-2. Register it in the adapter registry.
-3. Reference its `key` in a lane's `config.sources` (in the UI or `seeds/lanes.py`).
-4. Add any new env key to `config.py`, `.env.example`, SETUP.md, and `/api/status`.
-5. Document the adapter in this file's table above.
+1. Create `backend/app/adapters/<key>.py`. Subclass `SourceAdapter`, set `key`,
+   `description`, and `fixture_file`; implement `available(self, source_params)`
+   and `_fetch_live(self, source_params, limit, lane_config) -> list[RawCandidate]`.
+   Do **not** override `fetch()` — the base handles the fixture fallback.
+2. Decorate the class with `@register`.
+3. Import the module in `app/adapters/__init__.py` (side-effect registration).
+4. Add a `fixtures/<fixture_file>` so the source runs keyless; tag nothing — the
+   base adds `raw_meta.fixture=true` automatically.
+5. Reference its `key` in a lane's `config.sources` (UI or `seeds/lanes.py`).
+6. Add any new env key to `config.py` (+ an `*_enabled` helper), `.env.example`,
+   SETUP.md's key table, and `/api/status`.
+7. Add a row to the adapters table above and a unit test.
 
-(This section will be expanded with the concrete API once slice 2 implements it.)
+Enrichment sources (e.g. Companies House) are NOT discovery adapters — they live
+in `app/services/` and are called from `app/services/sourcing.py`.
 
 ## How to add / tune a lane
 

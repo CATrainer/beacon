@@ -18,8 +18,9 @@ This starts four services:
 | -------- | ----------------------- | -------------------------------------- |
 | frontend | http://localhost:5173   | Vite dev server (HMR)                  |
 | backend  | http://localhost:8000   | FastAPI; `/docs` for OpenAPI UI        |
+| worker   | (no port)               | arq worker — runs sourcing/AI jobs     |
 | db       | localhost:5432          | Postgres 16 (`beacon`/`beacon`)        |
-| redis    | localhost:6379          | Used by the worker queue from slice 2  |
+| redis    | localhost:6379          | Job queue (arq)                        |
 
 On boot the backend runs migrations (`alembic upgrade head`) and idempotently
 seeds the default **Clinics** and **Travel** lanes.
@@ -80,8 +81,9 @@ The model tier per stage is tunable without code: `MODEL_DEFAULT` (Sonnet),
 ## Common commands
 
 ```bash
-# Tail logs
+# Tail logs (backend or the job worker)
 docker compose logs -f backend
+docker compose logs -f worker
 
 # Open a shell in the backend container
 docker compose exec backend bash

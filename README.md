@@ -81,7 +81,11 @@ Built in working slices (see the design doc's Build Order). Current state and
 the per-slice checklist live in **[CLAUDE.md](CLAUDE.md)**.
 
 - ✅ **Slice 1** — skeleton, data model, auth, Lane CRUD, empty queue.
-- ⏳ Slices 2–7 (the MVP) in progress.
+- ✅ **Slice 2** — source adapters (CQC, ATOL, Places, directory ingest, manual
+  paste) + Companies House enrichment, dedupe/merge, Stage-2 qualification, and a
+  Redis/arq background worker with pollable jobs. Run a source from the Lanes
+  page; qualified leads appear in the queue.
+- ⏳ Slices 3–7 (the rest of the MVP) in progress.
 
 ---
 

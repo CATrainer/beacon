@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { useAuth } from "./lib/auth";
 import { LaneEditor } from "./pages/LaneEditor";
 import { Lanes } from "./pages/Lanes";
+import { LeadDetail } from "./pages/LeadDetail";
 import { Login } from "./pages/Login";
 import { Queue } from "./pages/Queue";
 
@@ -33,6 +34,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/queue" replace />} />
         <Route path="queue" element={<Queue />} />
+        <Route path="leads/:id" element={<LeadDetail />} />
         <Route path="lanes" element={<Lanes />} />
         <Route path="lanes/new" element={<LaneEditor />} />
         <Route path="lanes/:id" element={<LaneEditor />} />

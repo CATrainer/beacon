@@ -59,6 +59,24 @@ services:
       redis:
         condition: service_healthy
 
+  worker:
+    build: ./backend
+    command: ["arq", "app.worker.WorkerSettings"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://beacon:beacon@db:5432/beacon
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: local
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   frontend:
     build: ./frontend
     environment:

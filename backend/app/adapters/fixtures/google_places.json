@@ -1,0 +1,42 @@
+[
+  {
+    "company_name": "Bridgewater Dental & Implant Studio",
+    "website": "https://bridgewaterdental.example.com",
+    "address": "12 Deansgate, Manchester M3 2AB, UK",
+    "location": "Manchester",
+    "source_ref": "places/ChIJexample001",
+    "raw_meta": {"rating": 4.8, "review_count": 412, "primary_type": "Dental clinic"}
+  },
+  {
+    "company_name": "Park Lane Aesthetic Clinic",
+    "website": "https://parklaneaesthetics.example.com",
+    "address": "5 Park Row, Leeds LS1 5HD, UK",
+    "location": "Leeds",
+    "source_ref": "places/ChIJexample002",
+    "raw_meta": {"rating": 4.6, "review_count": 188, "primary_type": "Medical spa"}
+  },
+  {
+    "company_name": "Quay Street Skin & Laser",
+    "website": "https://quaystreetskin.example.com",
+    "address": "30 Quay Street, Manchester M3 3HN, UK",
+    "location": "Manchester",
+    "source_ref": "places/ChIJexample003",
+    "raw_meta": {"rating": 4.9, "review_count": 526, "primary_type": "Skin care clinic"}
+  },
+  {
+    "company_name": "Harbourside Cosmetic Dentistry",
+    "website": "https://harboursidecosmetic.example.com",
+    "address": "8 Harbourside, Bristol BS1 5UH, UK",
+    "location": "Bristol",
+    "source_ref": "places/ChIJexample004",
+    "raw_meta": {"rating": 4.3, "review_count": 96, "primary_type": "Cosmetic dentist"}
+  },
+  {
+    "company_name": "Budget Smiles Walk-In",
+    "website": "https://budgetsmiles.example.com",
+    "address": "100 High Street, Leeds LS1 1AA, UK",
+    "location": "Leeds",
+    "source_ref": "places/ChIJexample005",
+    "raw_meta": {"rating": 3.4, "review_count": 22, "primary_type": "Dental clinic"}
+  }
+]

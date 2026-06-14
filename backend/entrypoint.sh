@@ -22,6 +22,13 @@ print("[entrypoint] database never became ready", file=sys.stderr)
 sys.exit(1)
 PY
 
+# Alternate command (e.g. the arq worker: `command: ["arq", ...]`). Skips the
+# web-boot steps (migrations/seed are owned by the backend service).
+if [ "$#" -gt 0 ]; then
+  echo "[entrypoint] exec alternate command: $*"
+  exec "$@"
+fi
+
 echo "[entrypoint] running migrations..."
 alembic upgrade head
 

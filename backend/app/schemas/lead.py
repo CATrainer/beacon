@@ -34,3 +34,20 @@ class LeadListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class SourceHitOut(BaseModel):
+    id: int
+    source_key: str
+    source_ref: str | None
+    raw_meta: dict
+    fetched_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class LeadDetail(LeadListItem):
+    reject_overridden: bool
+    notes: str | None
+    created_at: datetime
+    source_hits: list[SourceHitOut]

@@ -1,0 +1,30 @@
+[
+  {
+    "company_name": "Meridian Private Travel",
+    "website": "https://meridianprivate.example.com",
+    "location": "Edinburgh",
+    "source_ref": "https://www.aito.com/find-a-specialist-tour-operator",
+    "raw_meta": {"membership_boost": {"aito": 15}}
+  },
+  {
+    "company_name": "Andes & Amazon Specialists",
+    "website": "https://andesamazon.example.com",
+    "location": "Bristol",
+    "source_ref": "https://www.aito.com/find-a-specialist-tour-operator",
+    "raw_meta": {"membership_boost": {"aito": 15}}
+  },
+  {
+    "company_name": "Kyoto Tailored Journeys",
+    "website": "https://kyototailored.example.com",
+    "location": "London",
+    "source_ref": "https://www.aito.com/find-a-specialist-tour-operator",
+    "raw_meta": {"membership_boost": {"aito": 15}}
+  },
+  {
+    "company_name": "Safari & Sands Collection",
+    "website": "https://safarisands.example.com",
+    "location": "Cheltenham",
+    "source_ref": "https://www.aito.com/find-a-specialist-tour-operator",
+    "raw_meta": {"membership_boost": {"aito": 15}}
+  }
+]

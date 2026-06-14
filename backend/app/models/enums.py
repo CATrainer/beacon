@@ -61,6 +61,19 @@ class GeoHookType(StrEnum):
     NO_GAP = "no_gap"
 
 
+class JobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+class JobType(StrEnum):
+    SOURCE_RUN = "source_run"
+    RESEARCH = "research"          # Slice 4
+    GEO_CHECK = "geo_check"        # Slice 5
+
+
 class ContactSource(StrEnum):
     RESEARCH = "research"           # found on the site by the research agent
     PATTERN = "pattern"            # inferred from a known address pattern

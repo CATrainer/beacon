@@ -100,6 +100,50 @@ export interface LeadListResponse {
   offset: number;
 }
 
+export type JobStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface Job {
+  id: number;
+  type: string;
+  status: JobStatus;
+  lane_id: number | null;
+  progress: number;
+  total: number;
+  message: string | null;
+  result: Record<string, unknown>;
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface Adapter {
+  key: string;
+  description: string;
+  live: boolean;
+}
+
+export interface SourceHit {
+  id: number;
+  source_key: string;
+  source_ref: string | null;
+  raw_meta: Record<string, unknown>;
+  fetched_at: string;
+}
+
+export interface LeadDetail extends LeadListItem {
+  reject_overridden: boolean;
+  notes: string | null;
+  created_at: string;
+  source_hits: SourceHit[];
+}
+
+export interface ManualEntry {
+  company_name: string;
+  website?: string | null;
+  location?: string | null;
+}
+
 export interface IntegrationStatus {
   env: string;
   ai: { anthropic: boolean; models: Record<string, string> };

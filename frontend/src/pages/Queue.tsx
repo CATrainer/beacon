@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Lane, LeadListResponse, LeadStage } from "../types";
 
@@ -13,6 +14,7 @@ function scoreBadge(score: number | null) {
 }
 
 export function Queue() {
+  const navigate = useNavigate();
   const [laneId, setLaneId] = useState<string>("");
   const [stage, setStage] = useState<string>("");
   const [q, setQ] = useState("");
@@ -98,10 +100,17 @@ export function Queue() {
               </tr>
             )}
             {data?.items.map((lead) => (
-              <tr key={lead.id} className="border-b border-line last:border-0 hover:bg-canvas">
+              <tr
+                key={lead.id}
+                onClick={() => navigate(`/leads/${lead.id}`)}
+                className="cursor-pointer border-b border-line last:border-0 hover:bg-canvas"
+              >
                 <td className="px-3 py-2">
                   <div className="font-medium">{lead.company}</div>
                   {lead.domain && <div className="text-xs text-slate-400">{lead.domain}</div>}
+                  {lead.reject_reason && (
+                    <div className="text-xs text-red-600">{lead.reject_reason}</div>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-slate-600">{lead.location ?? "—"}</td>
                 <td className="px-3 py-2">

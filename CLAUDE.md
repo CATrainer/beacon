@@ -54,11 +54,15 @@ backend/
     config.py          Settings (all env vars + *_enabled helpers)
     db.py              Engine, SessionLocal, get_db
     core/              security.py (hash/JWT), deps.py (current user)
-    models/            base, types, enums, user, lane, lead (+ children)
-    schemas/           auth, lane (LaneConfig), lead
-    api/               system (health/status), auth, lanes, leads, router
+    models/            base, types, enums, user, lane, lead (+ children), job
+    schemas/           auth, lane (LaneConfig), lead, job
+    api/               system, auth, lanes, leads, sources, jobs, router
+    adapters/          base (registry), cqc, atol, google_places,
+                       directory_ingest, manual_paste, fixtures/
+    services/          http, dedupe, qualification, sourcing, ai, companies_house
+    worker.py / queue.py   arq worker + enqueue helper
     seeds/lanes.py     Default Clinics & Travel lanes
-    scripts/           seed_user.py, seed_lanes.py
+    scripts/           seed_user.py, seed_lanes.py, seed_dev_user.py
   alembic/             Migration env + versions/
   tests/               SQLite-backed pytest suite
 frontend/
@@ -67,32 +71,50 @@ frontend/
     lib/api.ts         Fetch wrapper (JWT, errors, OAuth2 login)
     lib/auth.tsx       Auth context
     types.ts           API types (mirror backend schemas)
-    components/Layout.tsx
-    pages/             Login, Queue, Lanes, LaneEditor
+    components/        Layout, JobProgress, RunSources, ManualAdd
+    pages/             Login, Queue, Lanes, LaneEditor, LeadDetail
 docker-compose.yml
 docs/                  SETUP, DEPLOYMENT, MAINTENANCE
 ```
 
-## Data model (slice 1)
+## Data model
 
-`users`, `lanes`, `leads` (+ `source_hits`, `research_briefs`, `geo_checks`,
-`contacts`, `evidence`, `emails`, `activity_log`), `suppression`. A lead carries
+`users`, `lanes`, `jobs`, `leads` (+ `source_hits`, `research_briefs`,
+`geo_checks`, `contacts`, `evidence`, `emails`, `activity_log`), `suppression`.
+A lead carries
 funnel `stage` and CRM `status` independently, sub-scores in `score_breakdown`
 JSONB, and a `dedupe_key` (unique per lane).
 
 ## Current state
 
-**Slice 1 complete** — monorepo scaffold, full data model + initial migration,
-JWT auth + seed scripts, Lane CRUD (API + UI), empty ranked-queue view, Docker
-compose, docs. Backend: 8 tests pass, ruff clean.
+**Slice 2 complete** — source adapters (CQC, ATOL, Google Places, directory
+ingest, manual paste) behind a registry with keyless fixture fallback; Companies
+House director enrichment; dedupe/merge into one Lead per company; Stage-2
+qualification with stored reject reasons + operator override; arq/Redis worker
+with a Job table the UI polls; run-sources / manual-add / lead-detail UI.
+Verified live against real CQC + Google Places APIs. Backend: 24 tests pass, ruff
+clean; frontend type-checks & builds.
 
-Next: **Slice 2** — source adapters (CQC, ATOL, Google Places, Companies House,
-directory ingest, manual paste) + Stage-2 qualification + background job runner.
+Next: **Slice 3** — Stage-3 fit/wealth scoring (lane-weighted, sub-scores stored)
++ ranked queue UI with score breakdowns.
+
+### Adapters & background work (slice 2)
+- Adapter contract + registry: `app/adapters/base.py`. Add a source = new class
+  with `@register` + a fixture file; reference its `key` in a lane's
+  `config.sources`. Fixtures in `app/adapters/fixtures/` make every source run
+  keyless.
+- Orchestration: `app/services/sourcing.py` (fetch → dedupe/merge → qualify →
+  CH enrich). Dedupe: `app/services/dedupe.py`. Qualify: `app/services/qualification.py`.
+- Polite fetching (UA, rate limit, robots): `app/services/http.py`.
+- AI helper (structured JSON, cost estimate): `app/services/ai.py`.
+- Jobs: `app/models/job.py`, enqueue `app/queue.py` (falls back to inline
+  BackgroundTasks if Redis is down), worker `app/worker.py` (compose `worker`
+  service runs `arq app.worker.WorkerSettings`).
 
 ## Build Order checklist (MVP = 1–7)
 
 - [x] 1 — Skeleton + data model + auth + Lane CRUD UI; empty queue.
-- [ ] 2 — Stage 1–2: primary adapters per lane + qualification + job runner.
+- [x] 2 — Stage 1–2: primary adapters per lane + qualification + job runner.
 - [ ] 3 — Stage 3 scoring + queue ranking UI with score breakdowns.
 - [ ] 4 — Stage 4a research agent + contact waterfall.
 - [ ] 5 — Stage 4b GEO pre-check + gap severity into ranking.

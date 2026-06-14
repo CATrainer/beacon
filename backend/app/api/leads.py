@@ -6,15 +6,17 @@ Sourcing that fills it lands in Slice 2.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.db import get_db
-from app.models.enums import LeadStage, LeadStatus
-from app.models.lead import Lead
-from app.schemas.lead import LeadListItem, LeadListResponse
+from app.models.enums import ActivityType, LeadStage, LeadStatus
+from app.models.lead import ActivityLog, Lead
+from app.schemas.lead import LeadDetail, LeadListItem, LeadListResponse
 
 router = APIRouter(prefix="/leads", tags=["leads"], dependencies=[Depends(get_current_user)])
 
@@ -57,3 +59,37 @@ def list_leads(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/{lead_id}", response_model=LeadDetail)
+def get_lead(lead_id: int, db: Session = Depends(get_db)) -> LeadDetail:
+    lead = db.get(Lead, lead_id)
+    if lead is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lead not found")
+    return LeadDetail.model_validate(lead)
+
+
+@router.post("/{lead_id}/override", response_model=LeadDetail)
+def override_reject(lead_id: int, db: Session = Depends(get_db)) -> LeadDetail:
+    """Operator override of a Stage-2 rejection — self-sufficiency (§4)."""
+    lead = db.get(Lead, lead_id)
+    if lead is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lead not found")
+    if lead.stage != LeadStage.REJECTED:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Lead is not rejected")
+    previous = lead.reject_reason
+    lead.reject_overridden = True
+    lead.reject_reason = None
+    lead.stage = LeadStage.QUALIFIED
+    lead.status = LeadStatus.QUALIFIED
+    db.add(
+        ActivityLog(
+            lead_id=lead.id,
+            type=ActivityType.OVERRIDDEN,
+            detail={"previous_reason": previous},
+            created_at=datetime.now(UTC),
+        )
+    )
+    db.commit()
+    db.refresh(lead)
+    return LeadDetail.model_validate(lead)

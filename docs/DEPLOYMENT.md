@@ -24,9 +24,13 @@ evolves — see [MAINTENANCE.md](MAINTENANCE.md).
    - `APP_ENV=production`
    - `CORS_ORIGINS=https://<your-vercel-domain>`
    - Plus any integration keys you want live (see SETUP.md table).
-4. **Worker (slice 9+).** When managed-send / scheduled jobs land, add a second
-   Railway service from the same image overriding the start command to run the
-   `arq` worker. Document the exact command here when added.
+4. **Worker (required from slice 2).** Add a second Railway service from the same
+   `backend/` image, overriding the start command to
+   `arq app.worker.WorkerSettings` (the image entrypoint passes the command
+   through after waiting for the DB). It needs the same `DATABASE_URL` /
+   `REDIS_URL` / API-key env as the backend. Without it, sourcing/research/audit
+   jobs won't process (the API falls back to inline execution only if Redis is
+   unreachable).
 5. **Seed the first user** via Railway's one-off command / shell:
    `python -m app.scripts.seed_user --email … --name … --password …`
 

@@ -1,0 +1,50 @@
+[
+  {
+    "company_name": "Bridgewater Dental & Implant Studio",
+    "website": "https://bridgewaterdental.example.com",
+    "address": "12 Deansgate, Manchester, M3 2AB",
+    "location": "Manchester",
+    "source_ref": "1-100000001",
+    "raw_meta": {"gac_service_types": ["Dentist"], "postcode": "M3 2AB"}
+  },
+  {
+    "company_name": "Park Lane Aesthetic Clinic",
+    "website": "https://parklaneaesthetics.example.com",
+    "address": "5 Park Row, Leeds, LS1 5HD",
+    "location": "Leeds",
+    "source_ref": "1-100000002",
+    "raw_meta": {"gac_service_types": ["Clinic"], "postcode": "LS1 5HD"}
+  },
+  {
+    "company_name": "Northern Smile Orthodontics",
+    "website": "https://northernsmile.example.com",
+    "address": "44 New Street, Birmingham, B2 4DU",
+    "location": "Birmingham",
+    "source_ref": "1-100000003",
+    "raw_meta": {"gac_service_types": ["Dentist"], "postcode": "B2 4DU"}
+  },
+  {
+    "company_name": "Harbourside Cosmetic Dentistry",
+    "website": "https://harboursidecosmetic.example.com",
+    "address": "8 Harbourside, Bristol, BS1 5UH",
+    "location": "Bristol",
+    "source_ref": "1-100000004",
+    "raw_meta": {"gac_service_types": ["Dentist"], "postcode": "BS1 5UH"}
+  },
+  {
+    "company_name": "Mersey Medical Aesthetics",
+    "website": "https://merseymedaesthetics.example.com",
+    "address": "21 Bold Street, Liverpool, L1 4DN",
+    "location": "Liverpool",
+    "source_ref": "1-100000005",
+    "raw_meta": {"gac_service_types": ["Clinic"], "postcode": "L1 4DN"}
+  },
+  {
+    "company_name": "Steel City Dental Care",
+    "website": null,
+    "address": "3 Fargate, Sheffield, S1 2HD",
+    "location": "Sheffield",
+    "source_ref": "1-100000006",
+    "raw_meta": {"gac_service_types": ["Dentist"], "postcode": "S1 2HD", "note": "no website on record"}
+  }
+]
