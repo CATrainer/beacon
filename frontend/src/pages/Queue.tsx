@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Lane, LeadListResponse, LeadStage } from "../types";
 
 const STAGES: LeadStage[] = ["sourced", "qualified", "scored", "enriched", "ready", "rejected"];
+const STATUSES = [
+  "sourced", "qualified", "researched", "prepped", "queued", "sent", "replied",
+  "call_booked", "audit_sold", "delivered", "retainer", "lost", "rejected", "suppressed",
+];
 
 function scoreBadge(score: number | null) {
   if (score == null) return <span className="text-slate-400">—</span>;
@@ -15,8 +19,10 @@ function scoreBadge(score: number | null) {
 
 export function Queue() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [laneId, setLaneId] = useState<string>("");
   const [stage, setStage] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") ?? "");
   const [q, setQ] = useState("");
   const [minScore, setMinScore] = useState<string>("");
 
@@ -28,11 +34,12 @@ export function Queue() {
   const params = new URLSearchParams();
   if (laneId) params.set("lane_id", laneId);
   if (stage) params.set("stage", stage);
+  if (statusFilter) params.set("status", statusFilter);
   if (q.trim()) params.set("q", q.trim());
   if (minScore) params.set("min_score", minScore);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", laneId, stage, q, minScore],
+    queryKey: ["leads", laneId, stage, statusFilter, q, minScore],
     queryFn: () => api.get<LeadListResponse>(`/api/leads?${params.toString()}`),
   });
 
@@ -59,6 +66,18 @@ export function Queue() {
         <select className="input w-44" value={stage} onChange={(e) => setStage(e.target.value)}>
           <option value="">All stages</option>
           {STAGES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <select
+          className="input w-44"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>

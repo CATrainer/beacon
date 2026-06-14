@@ -66,6 +66,15 @@ class Settings(BaseSettings):
     gmail_client_secret: str = ""
     gmail_redirect_uri: str = "http://localhost:8000/api/integrations/gmail/callback"
     sending_identity: str = "caleb.trainer@heuricity.com"
+    # Default sending behaviour (operator-overridable via app_settings, §7).
+    sending_mode: str = "gmail_draft"  # gmail_draft (MVP) | managed (slice 9)
+    send_daily_cap: int = 25
+    send_window_start_hour: int = 8     # UTC hour; drafts/sends only inside the window
+    send_window_end_hour: int = 18
+    send_min_spacing_seconds: int = 45
+    send_max_spacing_seconds: int = 180
+    # Where the frontend lives, for OAuth redirect-back after Gmail connect.
+    frontend_url: str = "http://localhost:5173"
 
     # --- Booking ------------------------------------------------------------
     cal_link: str = ""

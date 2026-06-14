@@ -73,6 +73,7 @@ class JobType(StrEnum):
     SCORE = "score"               # Slice 3 — re-score a lane
     RESEARCH = "research"          # Slice 4
     GEO_CHECK = "geo_check"        # Slice 5
+    SEND = "send"                 # Slice 7 — process the send queue
 
 
 class ContactSource(StrEnum):

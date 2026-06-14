@@ -78,6 +78,27 @@ uses the Anthropic key for extraction).
 The model tier per stage is tunable without code: `MODEL_DEFAULT` (Sonnet),
 `MODEL_HIGH` (Opus), `MODEL_CHEAP` (Haiku).
 
+## Connecting Gmail (Slice 7, optional)
+
+The send queue creates a Gmail **draft** per approved lead for you to review and
+send by hand. Without Gmail connected it creates *simulated* drafts so the flow is
+testable.
+
+To connect a real account:
+
+1. In Google Cloud Console → **APIs & Services → OAuth consent screen**: set up an
+   external app (test mode is fine for 2 users), add your Google account as a test
+   user, and add the scope `https://www.googleapis.com/auth/gmail.compose`.
+2. **Credentials → Create credentials → OAuth client ID → Web application**. Add an
+   authorised redirect URI of `http://localhost:8000/api/integrations/gmail/callback`
+   (and your production callback when deployed).
+3. Put the client ID/secret in `.env` (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`),
+   `docker compose restart backend`, then go to **Settings → Connect Gmail** in the
+   app and complete the consent flow.
+
+Sending behaviour (mode, sending identity, daily cap, send window, spacing) is
+editable in **Settings**; the **suppression list** there is checked at send time.
+
 ## Common commands
 
 ```bash

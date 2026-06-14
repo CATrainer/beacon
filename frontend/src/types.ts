@@ -226,6 +226,40 @@ export interface ManualEntry {
   location?: string | null;
 }
 
+export interface SendingSettings {
+  mode: string;
+  identity: string;
+  daily_cap: number;
+  window_start_hour: number;
+  window_end_hour: number;
+  min_spacing_seconds: number;
+  max_spacing_seconds: number;
+}
+
+export interface Suppression {
+  id: number;
+  email_or_domain: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface GmailStatusInfo {
+  connected: boolean;
+  configured: boolean;
+  account_email: string | null;
+}
+
+export interface Activity {
+  id: number;
+  type: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface Pipeline {
+  counts: Record<string, number>;
+}
+
 export interface IntegrationStatus {
   env: string;
   ai: { anthropic: boolean; models: Record<string, string> };

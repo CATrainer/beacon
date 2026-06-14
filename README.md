@@ -99,7 +99,16 @@ the per-slice checklist live in **[CLAUDE.md](CLAUDE.md)**.
 - ✅ **Slice 6** — human-in-the-loop prep screen: copy the exact audit queries,
   upload a screenshot per query, AI-draft touch-1/2/3 (§8 constraints, edit
   inline), then approve → send queue.
-- ⏳ Slice 7 (final MVP slice) in progress.
+- ✅ **Slice 7** — Gmail-draft sending (swappable Sender; OAuth connect on the
+  Settings page; simulated drafts until you connect), send queue with per-identity
+  daily cap / send window / spacing / suppression check, plus the CRM pipeline
+  board and per-lead activity log.
+
+**🎉 MVP complete (slices 1–7)** — the end-to-end loop that replaces the manual
+process: source → qualify → score → research + contact → GEO pre-check → prep
+(screenshots + drafts) → approve → Gmail draft → send by hand → track. Next are
+the scale-ups (8–10): follow-ups + reply/booking detection, managed-send mode,
+and more source adapters.
 
 ---
 

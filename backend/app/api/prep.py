@@ -173,6 +173,9 @@ def approve(lead_id: int, db: Session = Depends(get_db)) -> dict:
         )
     lead.stage = LeadStage.READY
     lead.status = LeadStatus.QUEUED
+    # Mark touch-1 as queued for the send processor (Gmail-draft creation).
+    if touch1.status == EmailStatus.DRAFT:
+        touch1.status = EmailStatus.QUEUED
     db.add(ActivityLog(
         lead_id=lead.id, type=ActivityType.STATUS_CHANGED,
         detail={"to": "queued", "via": "prep_approve"}, created_at=_now(),

@@ -4,7 +4,12 @@ import { Link, useParams } from "react-router-dom";
 import { JobProgress } from "../components/JobProgress";
 import { PrepChecklist } from "../components/PrepChecklist";
 import { ApiError, api } from "../lib/api";
-import type { EmailConfidence, Job, LeadDetail as LeadDetailType } from "../types";
+import type { Activity, EmailConfidence, Job, LeadDetail as LeadDetailType } from "../types";
+
+const STATUS_OPTIONS = [
+  "sourced", "qualified", "researched", "prepped", "queued", "sent", "replied",
+  "call_booked", "audit_sold", "delivered", "retainer", "lost", "rejected", "suppressed",
+];
 
 function confidenceBadge(c: EmailConfidence | null) {
   if (!c) return <span className="badge bg-slate-100 text-slate-500">LinkedIn-first</span>;
@@ -126,6 +131,19 @@ export function LeadDetail() {
     onError: (e) => alert(e instanceof ApiError ? e.message : "GEO check failed"),
   });
 
+  const { data: activity } = useQuery({
+    queryKey: ["activity", id],
+    queryFn: () => api.get<Activity[]>(`/api/leads/${id}/activity`),
+  });
+  const setStatus = useMutation({
+    mutationFn: (s: string) => api.patch(`/api/leads/${id}/status`, { status: s }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lead", id] });
+      qc.invalidateQueries({ queryKey: ["activity", id] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+
   if (isLoading) return <p className="text-sm text-slate-400">Loading…</p>;
   if (!lead) return <p className="text-sm text-red-700">Lead not found.</p>;
 
@@ -150,9 +168,20 @@ export function LeadDetail() {
           )}
           <p className="text-sm text-slate-500">{lead.location ?? "—"}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <span className="badge bg-canvas text-slate-600">{lead.stage}</span>
-          <span className="badge bg-canvas text-slate-600">{lead.status}</span>
+          <select
+            className="input w-40 text-xs"
+            value={lead.status}
+            onChange={(e) => setStatus.mutate(e.target.value)}
+            title="Move pipeline stage"
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -389,6 +418,23 @@ export function LeadDetail() {
         ))}
         {lead.source_hits.length === 0 && (
           <p className="p-3 text-sm text-slate-400">No source hits.</p>
+        )}
+      </div>
+
+      <h2 className="mt-5 mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Activity
+      </h2>
+      <div className="card divide-y divide-line text-sm">
+        {(activity ?? []).map((a) => (
+          <div key={a.id} className="flex items-center justify-between px-3 py-1.5">
+            <span>{a.type.replace(/_/g, " ")}</span>
+            <span className="text-xs text-slate-400">
+              {new Date(a.created_at).toLocaleString()}
+            </span>
+          </div>
+        ))}
+        {(activity?.length ?? 0) === 0 && (
+          <p className="p-3 text-slate-400">No activity yet.</p>
         )}
       </div>
     </div>

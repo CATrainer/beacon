@@ -6,7 +6,9 @@ import type { IntegrationStatus } from "../types";
 
 const navItems = [
   { to: "/queue", label: "Queue" },
+  { to: "/pipeline", label: "Pipeline" },
   { to: "/lanes", label: "Lanes" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function Layout() {

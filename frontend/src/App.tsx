@@ -5,7 +5,9 @@ import { LaneEditor } from "./pages/LaneEditor";
 import { Lanes } from "./pages/Lanes";
 import { LeadDetail } from "./pages/LeadDetail";
 import { Login } from "./pages/Login";
+import { Pipeline } from "./pages/Pipeline";
 import { Queue } from "./pages/Queue";
+import { Settings } from "./pages/Settings";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -34,8 +36,10 @@ export default function App() {
       >
         <Route index element={<Navigate to="/queue" replace />} />
         <Route path="queue" element={<Queue />} />
+        <Route path="pipeline" element={<Pipeline />} />
         <Route path="leads/:id" element={<LeadDetail />} />
         <Route path="lanes" element={<Lanes />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="lanes/new" element={<LaneEditor />} />
         <Route path="lanes/:id" element={<LaneEditor />} />
       </Route>

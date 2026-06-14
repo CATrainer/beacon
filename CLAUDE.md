@@ -59,11 +59,13 @@ backend/
     core/              security.py (hash/JWT), deps.py (current user)
     models/            base, types, enums, user, lane, lead (+ children), job
     schemas/           auth, lane (LaneConfig), lead, job
-    api/               system, auth, lanes, leads, sources, prep, jobs, router
+    api/               system, auth, lanes, leads, sources, prep, crm,
+                       integrations, jobs, router
     adapters/          base (registry), cqc, atol, google_places,
                        directory_ingest, manual_paste, fixtures/
     services/          http, dedupe, qualification, sourcing, scoring, research,
-                       contacts, email_resolver, geo, drafting, ai, companies_house
+                       contacts, email_resolver, geo, drafting, sender, sending,
+                       app_settings, ai, companies_house
     uploads served at /uploads (StaticFiles, dir = settings.uploads_dir)
     worker.py / queue.py   arq worker + enqueue helper
     seeds/lanes.py     Default Clinics & Travel lanes
@@ -78,7 +80,7 @@ frontend/
     types.ts           API types (mirror backend schemas)
     components/        Layout, JobProgress, RunSources, ManualAdd, ReScore,
                        ResearchLane, GeoCheckLane, PrepChecklist
-    pages/             Login, Queue, Lanes, LaneEditor, LeadDetail
+    pages/             Login, Queue, Pipeline, Lanes, LaneEditor, LeadDetail, Settings
 docker-compose.yml
 docs/                  SETUP, DEPLOYMENT, MAINTENANCE
 ```
@@ -86,34 +88,34 @@ docs/                  SETUP, DEPLOYMENT, MAINTENANCE
 ## Data model
 
 `users`, `lanes`, `jobs`, `leads` (+ `source_hits`, `research_briefs`,
-`geo_checks`, `contacts`, `evidence`, `emails`, `activity_log`), `suppression`.
-A lead carries
+`geo_checks`, `contacts`, `evidence`, `emails`, `activity_log`), `suppression`,
+`oauth_credentials`, `app_settings`. A lead carries
 funnel `stage` and CRM `status` independently, sub-scores in `score_breakdown`
 JSONB, and a `dedupe_key` (unique per lane).
 
 ## Current state
 
-**Slice 6 complete** — human-in-the-loop prep workflow (`app/api/prep.py`,
-`app/services/drafting.py`). On the lead screen: copy-to-clipboard the exact audit
-queries (`GET /leads/{id}/audit-queries`), upload a screenshot per query
-(`POST /leads/{id}/evidence`, served from `/uploads` via StaticFiles); generate
-touch-1/2/3 via Anthropic with the §8 constraints enforced (`POST /leads/{id}/draft`,
-uses `MODEL_HIGH`/Opus, never fabricates evidence — names only real GEO
-competitors, title-stripped greeting, two proposed call slots); edit drafts inline
-(`PATCH /emails/{id}`); approve → send queue (`POST /leads/{id}/approve` → stage
-READY / status QUEUED, requires a touch-1 draft). UI: `PrepChecklist` on the lead
-page. Verified live: Opus draft 95 words, §8-compliant; evidence upload + static
-serve OK. Backend: 51 tests pass, ruff clean; frontend builds.
+**Slice 7 complete — MVP (slices 1–7) done.** Gmail-draft sending + send queue +
+CRM. `app/services/sender.py` (swappable Sender: GmailSender via OAuth, LogSender
+fallback that simulates drafts; google libs lazy-imported), `app/services/sending.py`
+(send queue: per-identity daily cap, send window, randomised spacing, suppression
+check, never auto-sends LOW-confidence). `app/api/integrations.py` (Gmail OAuth
+connect/callback/status), `app/api/crm.py` (`/send/process`, `/settings/sending`,
+`/suppression`, `/pipeline`, `/leads/{id}/status`, `/leads/{id}/activity`).
+Operator-editable settings in `app_settings` table; Gmail tokens in
+`oauth_credentials`. UI: Settings (Gmail + sending + suppression), Pipeline board,
+activity log + status control on the lead. Verified live: approve → process →
+simulated draft, lead SENT, pipeline + activity updated. 59 tests pass, ruff clean.
 
-Earlier: Slice 5 — Stage-4b GEO gap pre-check (`geo.py`): buyer-intent queries
-through Perplexity/OpenAI/Gemini (graceful degradation; fixtures fallback) →
-gap severity + hook into `gap_score`/`final_score`; triage-only disclaimer
-enforced in code/API/UI. Slice 4 — research agent + contact waterfall; Slice 3 —
-scoring + ranked queue; Slice 2 — adapters + Stage-2 qualification + worker;
-Slice 1 — scaffold/auth/lanes.
+Earlier: Slice 6 — prep workflow (`prep.py`/`drafting.py`): audit-query copy-out,
+screenshot upload (served at `/uploads`), Opus drafts under §8 constraints, edit
+inline, approve → queue. Slice 5 — GEO gap pre-check (`geo.py`) → gap severity.
+Slice 4 — research agent + contact waterfall. Slice 3 — scoring + ranked queue.
+Slice 2 — adapters + Stage-2 qualification + worker. Slice 1 — scaffold/auth/lanes.
 
-Next: **Slice 7** — Gmail-draft sending + send queue + CRM/pipeline + activity
-log (the MVP's final slice).
+**MVP complete (slices 1–7).** Next up are the scale-ups (design-doc 8–10):
+follow-ups + reply/booking detection (Cal.com webhook); managed-send mode
+(flag-gated, per-identity caps, scheduling); DirectoryIngest/ManualPaste polish.
 
 ### Adapters & background work (slice 2)
 - Adapter contract + registry: `app/adapters/base.py`. Add a source = new class
@@ -136,5 +138,5 @@ log (the MVP's final slice).
 - [x] 4 — Stage 4a research agent + contact waterfall.
 - [x] 5 — Stage 4b GEO pre-check + gap severity into ranking.
 - [x] 6 — Prep workflow screen (checklist, query copy-out, screenshot upload, drafting).
-- [ ] 7 — Gmail-draft sending + send queue + CRM/pipeline + activity log.
+- [x] 7 — Gmail-draft sending + send queue + CRM/pipeline + activity log. **MVP done.**
 - [ ] 8–10 — follow-ups/booking, managed-send, directory/manual adapters & polish.

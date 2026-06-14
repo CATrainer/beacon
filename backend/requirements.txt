@@ -28,5 +28,10 @@ beautifulsoup4==4.12.3
 # AI (Slice 4+)
 anthropic==0.42.0
 
+# Gmail sending (Slice 7) — imported lazily so the app runs without them.
+google-auth==2.37.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.156.0
+
 # Background worker queue (Slice 2+)
 arq==0.26.3
