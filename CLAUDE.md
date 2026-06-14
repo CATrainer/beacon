@@ -59,7 +59,7 @@ backend/
     api/               system, auth, lanes, leads, sources, jobs, router
     adapters/          base (registry), cqc, atol, google_places,
                        directory_ingest, manual_paste, fixtures/
-    services/          http, dedupe, qualification, sourcing, ai, companies_house
+    services/          http, dedupe, qualification, sourcing, scoring, ai, companies_house
     worker.py / queue.py   arq worker + enqueue helper
     seeds/lanes.py     Default Clinics & Travel lanes
     scripts/           seed_user.py, seed_lanes.py, seed_dev_user.py
@@ -87,16 +87,21 @@ JSONB, and a `dedupe_key` (unique per lane).
 
 ## Current state
 
-**Slice 2 complete** — source adapters (CQC, ATOL, Google Places, directory
-ingest, manual paste) behind a registry with keyless fixture fallback; Companies
-House director enrichment; dedupe/merge into one Lead per company; Stage-2
-qualification with stored reject reasons + operator override; arq/Redis worker
-with a Job table the UI polls; run-sources / manual-add / lead-detail UI.
-Verified live against real CQC + Google Places APIs. Backend: 24 tests pass, ruff
-clean; frontend type-checks & builds.
+**Slice 3 complete** — Stage-3 fit/wealth scoring (`app/services/scoring.py`):
+lane-weighted signals (high-ticket keywords, reviews, rating, booking funnel,
+blog, ad tracking, premium/bespoke language, AITO/ATOL membership) from Places
+metadata + one lightweight homepage fetch; sub-scores stored in
+`score_breakdown`; `final_score` blends present components via `final_weights`.
+Scoring runs at the end of a sourcing run and via a re-score job
+(`POST /lanes/{id}/rescore`). Queue ranks by final score with a min-score filter;
+lead detail shows the breakdown. Verified live: real clinics with marketing
+signals top the ranking. Backend: 28 tests pass, ruff clean; frontend builds.
 
-Next: **Slice 3** — Stage-3 fit/wealth scoring (lane-weighted, sub-scores stored)
-+ ranked queue UI with score breakdowns.
+Earlier: Slice 2 — adapters (CQC/ATOL/Places/directory/manual) + CH enrichment +
+dedupe/merge + Stage-2 qualification + arq worker; Slice 1 — scaffold/auth/lanes.
+
+Next: **Slice 4** — Stage-4a research agent (visits prospect pages → Research
+Brief via Anthropic) + contact email waterfall.
 
 ### Adapters & background work (slice 2)
 - Adapter contract + registry: `app/adapters/base.py`. Add a source = new class
@@ -115,7 +120,7 @@ Next: **Slice 3** — Stage-3 fit/wealth scoring (lane-weighted, sub-scores stor
 
 - [x] 1 — Skeleton + data model + auth + Lane CRUD UI; empty queue.
 - [x] 2 — Stage 1–2: primary adapters per lane + qualification + job runner.
-- [ ] 3 — Stage 3 scoring + queue ranking UI with score breakdowns.
+- [x] 3 — Stage 3 scoring + queue ranking UI with score breakdowns.
 - [ ] 4 — Stage 4a research agent + contact waterfall.
 - [ ] 5 — Stage 4b GEO pre-check + gap severity into ranking.
 - [ ] 6 — Prep workflow screen (checklist, query copy-out, screenshot upload, drafting).

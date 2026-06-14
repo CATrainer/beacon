@@ -11,8 +11,9 @@ from app.db import get_db
 from app.models.enums import JobStatus, JobType
 from app.models.job import Job
 from app.models.lane import Lane
-from app.queue import enqueue_source_job
+from app.queue import enqueue
 from app.schemas.job import JobOut, SourceRunRequest
+from app.services.scoring import execute_score_job
 from app.services.sourcing import execute_source_job
 
 router = APIRouter(tags=["sourcing"], dependencies=[Depends(get_current_user)])
@@ -62,9 +63,31 @@ async def run_source(
     db.commit()
     db.refresh(job)
 
-    queued = await enqueue_source_job(job.id)
+    queued = await enqueue("run_source_job", job.id)
     if not queued:
         # Redis/worker unavailable — run in the API process's threadpool instead.
         background.add_task(execute_source_job, job.id)
 
+    return JobOut.model_validate(job)
+
+
+@router.post(
+    "/lanes/{lane_id}/rescore", response_model=JobOut, status_code=status.HTTP_202_ACCEPTED
+)
+async def rescore(
+    lane_id: int,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> JobOut:
+    """Re-score every non-rejected lead in the lane (after tuning weights, §5)."""
+    lane = db.get(Lane, lane_id)
+    if lane is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lane not found")
+    job = Job(type=JobType.SCORE, lane_id=lane_id, status=JobStatus.QUEUED, params={})
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    queued = await enqueue("run_score_job", job.id)
+    if not queued:
+        background.add_task(execute_score_job, job.id)
     return JobOut.model_validate(job)

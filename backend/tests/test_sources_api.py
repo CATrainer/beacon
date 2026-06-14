@@ -24,10 +24,10 @@ def test_list_adapters(client, auth_headers):
 
 
 def test_trigger_source_run_creates_job(client, auth_headers, lane, monkeypatch):
-    async def _fake_enqueue(job_id: int) -> bool:
+    async def _fake_enqueue(*args, **kwargs) -> bool:
         return True  # pretend Redis accepted it; no inline execution
 
-    monkeypatch.setattr("app.api.sources.enqueue_source_job", _fake_enqueue)
+    monkeypatch.setattr("app.api.sources.enqueue", _fake_enqueue)
 
     resp = client.post(
         f"/api/lanes/{lane.id}/source",

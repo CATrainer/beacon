@@ -178,6 +178,24 @@ def _run(db: Session, job: Job) -> dict:
             _add_activity(db, lead.id, ActivityType.REJECTED, {"reason": result.reason})
     db.commit()
 
+    # --- Stage 3 scoring of survivors ---------------------------------------
+    # Cheap signals score everyone who survived qualification. Skip the homepage
+    # fetch on fixture runs (the example.com sites don't resolve) — Places
+    # metadata still drives the score.
+    if qualified_leads:
+        from app.services.scoring import score_leads
+
+        job.message = "Scoring…"
+        db.commit()
+        counts["scored"] = score_leads(
+            db,
+            qualified_leads,
+            config.scoring,
+            config.final_weights,
+            fetch=not force_fixtures,
+        )
+        db.commit()
+
     # --- Companies House enrichment (best-effort, director candidates) -------
     if companies_house.available():
         job.message = "Enriching with Companies House…"

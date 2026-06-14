@@ -18,6 +18,7 @@ export function Queue() {
   const [laneId, setLaneId] = useState<string>("");
   const [stage, setStage] = useState<string>("");
   const [q, setQ] = useState("");
+  const [minScore, setMinScore] = useState<string>("");
 
   const { data: lanes } = useQuery({
     queryKey: ["lanes"],
@@ -28,9 +29,10 @@ export function Queue() {
   if (laneId) params.set("lane_id", laneId);
   if (stage) params.set("stage", stage);
   if (q.trim()) params.set("q", q.trim());
+  if (minScore) params.set("min_score", minScore);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", laneId, stage, q],
+    queryKey: ["leads", laneId, stage, q, minScore],
     queryFn: () => api.get<LeadListResponse>(`/api/leads?${params.toString()}`),
   });
 
@@ -67,6 +69,15 @@ export function Queue() {
           placeholder="Search company or domain…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+        />
+        <input
+          type="number"
+          min={0}
+          max={100}
+          className="input w-32"
+          placeholder="Min score"
+          value={minScore}
+          onChange={(e) => setMinScore(e.target.value)}
         />
       </div>
 

@@ -70,6 +70,17 @@ Lanes are **data, not code**. Create or edit them in the UI (Lanes → New lane)
 The config JSON is validated against `LaneConfig`
 (`backend/app/schemas/lane.py`). The two shipped defaults live in
 `backend/app/seeds/lanes.py` — edit those only to change what new installs seed.
+After changing a lane's `scoring.signals` weights, hit **Re-score** on the lane
+card (or `POST /lanes/{id}/rescore`) to recompute existing leads.
+
+## How to add a scoring signal (slice 3)
+
+1. Add a strength function `_s_<name>(ctx) -> float` (0.0–1.0) in
+   `backend/app/services/scoring.py` and register it in `STRENGTH_FUNCS`.
+2. If it needs new evidence, extend `ScoreContext` / `build_context` (e.g. a new
+   keyword lexicon, or a field pulled from `source_hit.raw_meta`).
+3. Reference the signal name with a weight in a lane's `scoring.signals`.
+   Unknown signal names score 0 and are ignored, so this is safe to roll out.
 
 ## Migrations
 

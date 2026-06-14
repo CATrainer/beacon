@@ -49,7 +49,9 @@ def test_full_sourcing_pipeline_on_fixtures(db):
     )
     keys = {h.source_key for h in bridgewater.source_hits}
     assert keys == {"cqc", "google_places"}
-    assert bridgewater.stage == LeadStage.QUALIFIED
+    # Survivors are scored in the same run, so the stage advances past QUALIFIED.
+    assert bridgewater.stage == LeadStage.SCORED
+    assert bridgewater.fit_score is not None
 
     # The websiteless lead is rejected with a reason.
     steel = next(x for x in leads if "steel city" in x.company.lower())

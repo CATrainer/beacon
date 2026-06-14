@@ -85,7 +85,10 @@ the per-slice checklist live in **[CLAUDE.md](CLAUDE.md)**.
   paste) + Companies House enrichment, dedupe/merge, Stage-2 qualification, and a
   Redis/arq background worker with pollable jobs. Run a source from the Lanes
   page; qualified leads appear in the queue.
-- ⏳ Slices 3–7 (the rest of the MVP) in progress.
+- ✅ **Slice 3** — Stage-3 fit/wealth scoring from cheap signals (Places metadata
+  + homepage scan); the queue ranks by final score and each lead shows its score
+  breakdown. Tune weights per lane, then "Re-score".
+- ⏳ Slices 4–7 (the rest of the MVP) in progress.
 
 ---
 

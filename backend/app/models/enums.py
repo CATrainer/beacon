@@ -70,6 +70,7 @@ class JobStatus(StrEnum):
 
 class JobType(StrEnum):
     SOURCE_RUN = "source_run"
+    SCORE = "score"               # Slice 3 — re-score a lane
     RESEARCH = "research"          # Slice 4
     GEO_CHECK = "geo_check"        # Slice 5
 
