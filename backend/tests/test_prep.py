@@ -8,7 +8,7 @@ from app.models.lane import Lane
 from app.models.lead import Email, GeoCheck, Lead, ResearchBrief
 from app.schemas.lane import GeoConfig, LaneConfig
 from app.services import ai
-from app.services.drafting import draft_emails, first_name_of, propose_call_slots
+from app.services.drafting import draft_emails, first_name_of
 
 CANNED = {
     "touch1": {"subject": "Your AI visibility", "body": "Hi Jane, ... within 90 days. Caleb"},
@@ -22,12 +22,6 @@ def test_first_name_strips_titles():
     assert first_name_of("Jane Smith") == "Jane"
     assert first_name_of("Prof. Alan Turing") == "Alan"
     assert first_name_of(None) == "there"
-
-
-def test_propose_call_slots_two_weekdays():
-    slots = propose_call_slots()
-    assert len(slots) == 2
-    assert all("at" in s for s in slots)
 
 
 @pytest.fixture

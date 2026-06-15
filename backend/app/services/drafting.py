@@ -1,16 +1,17 @@
 """Email drafting (§8) — reused across the tool.
 
-Enforces the design doc's constraints: 60–110 words; first-name greeting; opens
-with the *specific* researched evidence (real competitors from the GEO pre-check
-/ confirmed by screenshot, never invented); one outcome line; one ask with two
-named time slots; plain text, no links except signature; British English; no
-exclamation marks; banned phrases. Returns touch-1/2/3. Never fabricates evidence.
+Three-touch sequence engineered for the paid-audit funnel: touch-1 is an
+evidence hook + soft reply ask (no call, no price); touch-2 introduces the paid
+audit + retainer discount and asks for a call via the Cal.com booking link (never
+invented slots — live availability); touch-3 is a breakup. Constraints (§8):
+60–110 words; first-name greeting; only real GEO-pre-check competitors (never
+invented); plain text, no links except signature; British English; no exclamation
+marks / banned phrases.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
 
 from app.config import settings
 from app.models.lead import Lead
@@ -74,7 +75,9 @@ _SYSTEM = (
     "introduce the paid GEO audit ({audit_price}) — it maps exactly where they "
     "appear vs competitors across ChatGPT/Gemini/Perplexity and the fixes — and "
     "note that audit clients get {audit_discount} ({retainer} retainer). Then ask "
-    "for a short call, offering the two named time slots provided.\n"
+    "for a short call and point them to the booking link so they pick a time that "
+    "suits — write it as: grab a time at {cal_link}, or reply and I'll work around "
+    "you. Do NOT invent specific dates/times.\n"
     "- touch-3 (sent +7 days): a short, gracious breakup.\n\n"
     "HARD CONSTRAINTS for every email:\n"
     "- 60–110 words; first-name greeting only; British English; plain text, no "
@@ -86,22 +89,6 @@ _SYSTEM = (
     "- End every email with exactly this signature line: {signature}\n"
     "Tone: a competent engineer sharing an observation, not a marketer."
 )
-
-
-def propose_call_slots(now: datetime | None = None) -> list[str]:
-    """Two upcoming weekday slots, human-formatted for the ask."""
-    now = now or datetime.now(UTC)
-    slots: list[str] = []
-    times = [(10, 0, "10:00"), (14, 0, "2pm")]
-    d = now
-    i = 0
-    while len(slots) < 2:
-        d = d + timedelta(days=1)
-        if d.weekday() < 5:  # Mon–Fri
-            hour, minute, label = times[i % 2]
-            slots.append(f"{d.strftime('%A %d %B')} at {label}")
-            i += 1
-    return slots
 
 
 def _competitors_from_geo(lead: Lead) -> list[str]:
@@ -122,8 +109,8 @@ def draft_emails(lead: Lead) -> tuple[dict, float]:
     )
     first_name = first_name_of(dm_name)
     competitors = _competitors_from_geo(lead)
-    slots = propose_call_slots()
-    signature = SIGNATURE.format(cal_link=settings.cal_link or "[Cal.com link]")
+    cal_link = settings.cal_link or "[set your Cal.com link in CAL_LINK]"
+    signature = SIGNATURE.format(cal_link=cal_link)
     has_evidence = bool(lead.evidence)
 
     high_ticket = brief.high_ticket_services if brief else []
@@ -137,14 +124,14 @@ def draft_emails(lead: Lead) -> tuple[dict, float]:
         f"Competitors that appeared in AI answers (real, from the pre-check): "
         f"{', '.join(competitors) if competitors else 'none captured'}\n"
         f"Screenshot evidence captured by operator: {'yes' if has_evidence else 'not yet'}\n"
-        f"Two call slots to offer IN TOUCH-2 ONLY (never in touch-1): "
-        f"{slots[0]}; {slots[1]}\n"
+        f"Booking link (use in touch-2 only): {cal_link}\n"
     )
     system = _SYSTEM.format(
         signature=signature,
         audit_price=settings.offer_audit_price,
         audit_discount=settings.offer_audit_discount,
         retainer=settings.offer_retainer,
+        cal_link=cal_link,
     )
     return ai.complete_json(
         model=settings.model_high, system=system, user=user, schema=_SCHEMA, max_tokens=1500
