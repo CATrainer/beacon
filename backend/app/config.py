@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     # Where the frontend lives, for OAuth redirect-back after Gmail connect.
     frontend_url: str = "http://localhost:5173"
 
+    # --- Outreach offer (used in drafting; tune without code) ---------------
+    offer_audit_price: str = "£850"
+    offer_retainer: str = "£1,500/month"
+    offer_audit_discount: str = "£400/month off the retainer"
+
     # --- Booking ------------------------------------------------------------
     cal_link: str = ""
     cal_webhook_secret: str = ""

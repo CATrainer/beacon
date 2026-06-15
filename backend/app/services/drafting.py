@@ -61,23 +61,29 @@ _SCHEMA = {
 
 _SYSTEM = (
     "You write cold B2B outreach for Heuricity, which gets specialist firms cited "
-    "in AI answers (GEO / AI visibility). Write three emails (touch-1, touch-2 at "
-    "+3 days referencing the screenshot evidence, touch-3 a breakup at +7 days).\n\n"
+    "in AI answers (GEO / AI visibility). Write a three-touch sequence engineered "
+    "for REPLIES, not a hard sell.\n\n"
+    "SEQUENCE STRATEGY (follow exactly):\n"
+    "- touch-1: Hook with the SPECIFIC evidence (the real competitor names that "
+    "appeared in AI answers while the prospect did not). One outcome line. Then a "
+    "LOW-FRICTION reply ask — invite them to reply if they'd like a quick free "
+    "rundown of where they show up versus those competitors. CRITICAL: touch-1 "
+    "must contain NO meeting/call request and NO time slots and NO price and NO "
+    "mention of the paid audit — its only call to action is inviting a reply.\n"
+    "- touch-2 (sent +3 days, references the screenshot evidence): briefly "
+    "introduce the paid GEO audit ({audit_price}) — it maps exactly where they "
+    "appear vs competitors across ChatGPT/Gemini/Perplexity and the fixes — and "
+    "note that audit clients get {audit_discount} ({retainer} retainer). Then ask "
+    "for a short call, offering the two named time slots provided.\n"
+    "- touch-3 (sent +7 days): a short, gracious breakup.\n\n"
     "HARD CONSTRAINTS for every email:\n"
-    "- 60–110 words.\n"
-    "- First-name greeting only.\n"
-    "- Open with the SPECIFIC researched evidence provided (real competitor names "
-    "from the GEO pre-check). NEVER invent or embellish evidence — use only the "
-    "facts given. If no competitors were provided, describe the absence plainly "
-    "without naming any.\n"
-    "- One outcome line, e.g. 'we typically get specialist firms cited in AI "
-    "answers for their core queries within 90 days'.\n"
-    "- One ask with the two named time slots provided.\n"
-    "- Plain text. No links except in the signature.\n"
-    "- British English.\n"
-    "- No exclamation marks. Do NOT use 'I hope this finds you well' or "
-    "'quick question'.\n"
-    "- End with exactly this signature line: {signature}\n"
+    "- 60–110 words; first-name greeting only; British English; plain text, no "
+    "links except in the signature; no exclamation marks; never use 'I hope this "
+    "finds you well' or 'quick question'.\n"
+    "- NEVER invent or embellish evidence — use only the facts/competitors given. "
+    "If no competitors were provided, describe the absence plainly without naming "
+    "any.\n"
+    "- End every email with exactly this signature line: {signature}\n"
     "Tone: a competent engineer sharing an observation, not a marketer."
 )
 
@@ -131,9 +137,15 @@ def draft_emails(lead: Lead) -> tuple[dict, float]:
         f"Competitors that appeared in AI answers (real, from the pre-check): "
         f"{', '.join(competitors) if competitors else 'none captured'}\n"
         f"Screenshot evidence captured by operator: {'yes' if has_evidence else 'not yet'}\n"
-        f"Two call slots to offer: {slots[0]}; {slots[1]}\n"
+        f"Two call slots to offer IN TOUCH-2 ONLY (never in touch-1): "
+        f"{slots[0]}; {slots[1]}\n"
     )
-    system = _SYSTEM.format(signature=signature)
+    system = _SYSTEM.format(
+        signature=signature,
+        audit_price=settings.offer_audit_price,
+        audit_discount=settings.offer_audit_discount,
+        retainer=settings.offer_retainer,
+    )
     return ai.complete_json(
         model=settings.model_high, system=system, user=user, schema=_SCHEMA, max_tokens=1500
     )
