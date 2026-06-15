@@ -5,18 +5,20 @@ import type { AuditQueries, EmailItem, LeadDetail } from "../types";
 
 const ENGINES = ["ChatGPT", "Gemini", "Perplexity"];
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
+      type="button"
       className="btn-ghost"
+      disabled={!text}
       onClick={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
     >
-      {copied ? "Copied" : "Copy"}
+      {copied ? "Copied ✓" : label}
     </button>
   );
 }
@@ -58,11 +60,15 @@ function EmailEditor({ email, onSaved }: { email: EmailItem; onSaved: () => void
         disabled={!editable}
         onChange={(e) => setBody(e.target.value)}
       />
-      {editable && (
-        <button className="btn-ghost mt-2" disabled={save.isPending} onClick={() => save.mutate()}>
-          {save.isPending ? "Saving…" : "Save edits"}
-        </button>
-      )}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {editable && (
+          <button className="btn-ghost" disabled={save.isPending} onClick={() => save.mutate()}>
+            {save.isPending ? "Saving…" : "Save edits"}
+          </button>
+        )}
+        <CopyButton text={subject} label="Copy subject" />
+        <CopyButton text={body} label="Copy body" />
+      </div>
     </div>
   );
 }
@@ -192,6 +198,17 @@ export function PrepChecklist({ lead }: { lead: LeadDetail }) {
             {draft.isPending ? "Drafting…" : lead.emails.length ? "Re-draft" : "Generate drafts"}
           </button>
         </div>
+        {lead.contact?.email ? (
+          <div className="mb-2 flex items-center gap-2 text-sm">
+            <span className="text-slate-500">To:</span>
+            <code className="text-xs">{lead.contact.email}</code>
+            <CopyButton text={lead.contact.email} label="Copy email" />
+          </div>
+        ) : (
+          <p className="mb-2 text-xs text-amber-700">
+            No email resolved — LinkedIn-first ({lead.contact?.linkedin_url ?? "no profile"}).
+          </p>
+        )}
         {lead.emails.length === 0 ? (
           <p className="text-xs text-slate-500">
             No drafts yet. Generate after research + screenshots for the best touch-1.
