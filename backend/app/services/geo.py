@@ -19,7 +19,7 @@ import logging
 from datetime import UTC, datetime
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -213,6 +213,9 @@ def geo_check_lead(db: Session, lead: Lead, config, *, force_fixtures: bool = Fa
     now = datetime.now(UTC)
     cost = 0.0
     severities: list[float] = []
+
+    # Replace any prior GEO checks for this lead — re-runs supersede, not stack.
+    db.execute(delete(GeoCheck).where(GeoCheck.lead_id == lead.id))
 
     if not engines and not force_fixtures:
         # Graceful no-op: record that no engine is configured; leave gap_score alone.
