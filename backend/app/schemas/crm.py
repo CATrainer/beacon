@@ -29,6 +29,18 @@ class SendingSettingsUpdate(BaseModel):
     max_spacing_seconds: int | None = None
 
 
+class SourcingSettingsOut(BaseModel):
+    enabled: bool
+    hour: int
+    limit: int
+
+
+class SourcingSettingsUpdate(BaseModel):
+    enabled: bool | None = None
+    hour: int | None = None
+    limit: int | None = None
+
+
 class SendRequest(BaseModel):
     limit: int | None = None
     ignore_window: bool = False

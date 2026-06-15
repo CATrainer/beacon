@@ -15,6 +15,7 @@ from app.config import settings
 from app.models.integration import AppSetting
 
 _SENDING_KEY = "sending"
+_SOURCING_KEY = "sourcing"
 
 
 class SendingSettings(BaseModel):
@@ -25,6 +26,33 @@ class SendingSettings(BaseModel):
     window_end_hour: int = settings.send_window_end_hour
     min_spacing_seconds: int = settings.send_min_spacing_seconds
     max_spacing_seconds: int = settings.send_max_spacing_seconds
+
+
+class SourcingSettings(BaseModel):
+    enabled: bool = settings.scheduled_sourcing_enabled
+    hour: int = settings.scheduled_sourcing_hour
+    limit: int = settings.scheduled_sourcing_limit
+
+
+def get_sourcing_settings(db: Session) -> SourcingSettings:
+    row = db.scalar(select(AppSetting).where(AppSetting.key == _SOURCING_KEY))
+    if row and row.value:
+        return SourcingSettings(**{**SourcingSettings().model_dump(), **row.value})
+    return SourcingSettings()
+
+
+def update_sourcing_settings(db: Session, patch: dict) -> SourcingSettings:
+    current = get_sourcing_settings(db).model_dump()
+    merged = {**current, **{k: v for k, v in patch.items() if v is not None}}
+    validated = SourcingSettings(**merged)
+    row = db.scalar(select(AppSetting).where(AppSetting.key == _SOURCING_KEY))
+    if row is None:
+        row = AppSetting(key=_SOURCING_KEY, value=validated.model_dump())
+        db.add(row)
+    else:
+        row.value = validated.model_dump()
+    db.commit()
+    return validated
 
 
 def get_sending_settings(db: Session) -> SendingSettings:

@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { JobProgress } from "../components/JobProgress";
 import { ApiError, api } from "../lib/api";
-import type { GmailStatusInfo, Job, SendingSettings, Suppression } from "../types";
+import type {
+  GmailStatusInfo,
+  Job,
+  SendingSettings,
+  SourcingSettings,
+  Suppression,
+} from "../types";
 
 function GmailSection() {
   const qc = useQueryClient();
@@ -131,6 +137,74 @@ function SendingSection() {
   );
 }
 
+function SourcingSection() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["sourcing-settings"],
+    queryFn: () => api.get<SourcingSettings>("/api/settings/sourcing"),
+  });
+  const [form, setForm] = useState<Partial<SourcingSettings>>({});
+  const merged = { ...data, ...form } as SourcingSettings;
+  const save = useMutation({
+    mutationFn: () => api.put<SourcingSettings>("/api/settings/sourcing", form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sourcing-settings"] });
+      setForm({});
+    },
+  });
+  if (!data) return null;
+
+  return (
+    <div className="card p-4">
+      <h2 className="mb-1 font-semibold">Scheduled sourcing</h2>
+      <p className="mb-3 text-xs text-slate-500">
+        When on, the worker tops up every active lane once a day — pulling{" "}
+        <em>new</em> records each run (it resumes where the last run left off), so the queue keeps
+        growing without re-scanning. (Changing the hour needs a worker restart.)
+      </p>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex items-center gap-1.5 text-sm">
+          <input
+            type="checkbox"
+            checked={merged.enabled}
+            onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+          />
+          Enabled
+        </label>
+        <label className="text-sm">
+          <span className="label">Run at (UTC hour)</span>
+          <input
+            type="number"
+            min={0}
+            max={23}
+            className="input w-24"
+            value={merged.hour}
+            onChange={(e) => setForm({ ...form, hour: Number(e.target.value) })}
+          />
+        </label>
+        <label className="text-sm">
+          <span className="label">Per source / run</span>
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            className="input w-24"
+            value={merged.limit}
+            onChange={(e) => setForm({ ...form, limit: Number(e.target.value) })}
+          />
+        </label>
+        <button
+          className="btn-ghost"
+          disabled={Object.keys(form).length === 0 || save.isPending}
+          onClick={() => save.mutate()}
+        >
+          {save.isPending ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SuppressionSection() {
   const qc = useQueryClient();
   const { data } = useQuery({
@@ -206,6 +280,7 @@ export function Settings() {
       {banner === "error" && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">Gmail connection failed.</p>
       )}
+      <SourcingSection />
       <GmailSection />
       <SendingSection />
       <SuppressionSection />

@@ -43,7 +43,9 @@ class ATOLAdapter(SourceAdapter):
         # Live fetch only when a data URL is configured; otherwise fixtures.
         return bool(source_params.get("data_url"))
 
-    def _fetch_live(self, source_params: dict, limit: int, lane_config: dict) -> list[RawCandidate]:
+    def _fetch_live(
+        self, source_params: dict, limit: int, lane_config: dict, cursor: dict
+    ) -> list[RawCandidate]:
         data_url = source_params["data_url"]
         name_cols = source_params.get("name_columns") or _NAME_COLS
         website_cols = source_params.get("website_columns") or _WEBSITE_COLS

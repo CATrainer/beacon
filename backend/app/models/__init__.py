@@ -12,6 +12,7 @@ from app.models.lead import (
     GeoCheck,
     Lead,
     ResearchBrief,
+    SourceCursor,
     SourceHit,
     Suppression,
 )
@@ -32,5 +33,6 @@ __all__ = [
     "Evidence",
     "Email",
     "Suppression",
+    "SourceCursor",
     "ActivityLog",
 ]

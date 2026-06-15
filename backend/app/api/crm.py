@@ -23,12 +23,19 @@ from app.schemas.crm import (
     SendingSettingsOut,
     SendingSettingsUpdate,
     SendRequest,
+    SourcingSettingsOut,
+    SourcingSettingsUpdate,
     StatusUpdate,
     SuppressionCreate,
     SuppressionOut,
 )
 from app.schemas.job import JobOut
-from app.services.app_settings import get_sending_settings, update_sending_settings
+from app.services.app_settings import (
+    get_sending_settings,
+    get_sourcing_settings,
+    update_sending_settings,
+    update_sourcing_settings,
+)
 from app.services.sending import execute_send_job
 
 router = APIRouter(tags=["crm"], dependencies=[Depends(get_current_user)])
@@ -72,6 +79,20 @@ def write_sending_settings(
 ) -> SendingSettingsOut:
     updated = update_sending_settings(db, payload.model_dump(exclude_none=True))
     return SendingSettingsOut(**updated.model_dump())
+
+
+# --- Scheduled sourcing settings -------------------------------------------
+@router.get("/settings/sourcing", response_model=SourcingSettingsOut)
+def read_sourcing_settings(db: Session = Depends(get_db)) -> SourcingSettingsOut:
+    return SourcingSettingsOut(**get_sourcing_settings(db).model_dump())
+
+
+@router.put("/settings/sourcing", response_model=SourcingSettingsOut)
+def write_sourcing_settings(
+    payload: SourcingSettingsUpdate, db: Session = Depends(get_db)
+) -> SourcingSettingsOut:
+    updated = update_sourcing_settings(db, payload.model_dump(exclude_none=True))
+    return SourcingSettingsOut(**updated.model_dump())
 
 
 # --- Suppression ------------------------------------------------------------

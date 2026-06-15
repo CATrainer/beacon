@@ -53,7 +53,11 @@ class SourceAdapter:
         """Whether a live fetch is possible (e.g. the API key / data URL is set)."""
         raise NotImplementedError
 
-    def _fetch_live(self, source_params: dict, limit: int, lane_config: dict) -> list[RawCandidate]:
+    def _fetch_live(
+        self, source_params: dict, limit: int, lane_config: dict, cursor: dict
+    ) -> list[RawCandidate]:
+        """Return candidates. Paginating adapters may mutate ``cursor`` in place to
+        resume on the next run (incremental sourcing)."""
         raise NotImplementedError
 
     def fetch(
@@ -62,15 +66,18 @@ class SourceAdapter:
         limit: int,
         lane_config: dict,
         *,
+        cursor: dict | None = None,
         force_fixtures: bool = False,
     ) -> list[RawCandidate]:
-        """Return candidates. Falls back to fixtures when unavailable."""
+        """Return candidates. Falls back to fixtures when unavailable. ``cursor`` is
+        a per-(lane, source) state dict the adapter may advance in place."""
+        cur = cursor if cursor is not None else {}
         if force_fixtures or not self.available(source_params):
             reason = "forced" if force_fixtures else "unavailable"
             log.info("adapter %s using fixtures (%s)", self.key, reason)
             return self._load_fixtures(limit)
         try:
-            return self._fetch_live(source_params, limit, lane_config)
+            return self._fetch_live(source_params, limit, lane_config, cur)
         except AdapterError:
             raise
         except Exception as exc:  # noqa: BLE001 — surface as AdapterError to the job

@@ -10,18 +10,33 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.adapters import RawCandidate, get_adapter
-from app.models.enums import ActivityType, LeadStage, LeadStatus
+from app.models.enums import ActivityType, JobStatus, JobType, LeadStage, LeadStatus
 from app.models.job import Job
 from app.models.lane import Lane
-from app.models.lead import ActivityLog, Lead, SourceHit, Suppression
+from app.models.lead import (
+    ActivityLog,
+    Contact,
+    Email,
+    Evidence,
+    GeoCheck,
+    Lead,
+    ResearchBrief,
+    SourceCursor,
+    SourceHit,
+    Suppression,
+)
 from app.schemas.lane import LaneConfig
 from app.services import companies_house
-from app.services.dedupe import compute_dedupe_key, extract_domain
+from app.services.dedupe import compute_dedupe_key, extract_domain, normalize_name
 from app.services.qualification import qualify
+
+# Child tables that point at a lead — reassigned when two leads merge.
+_LEAD_CHILDREN = (SourceHit, ResearchBrief, GeoCheck, Contact, Evidence, Email, ActivityLog)
 
 log = logging.getLogger(__name__)
 
@@ -34,12 +49,84 @@ def _add_activity(db: Session, lead_id: int, type_: ActivityType, detail: dict) 
     db.add(ActivityLog(lead_id=lead_id, type=type_, detail=detail, created_at=_now()))
 
 
+def _get_or_create_cursor(db: Session, lane_id: int, source_key: str) -> SourceCursor:
+    """Get the cursor row, creating it atomically (concurrent runs may race)."""
+    row = db.scalar(
+        select(SourceCursor).where(
+            SourceCursor.lane_id == lane_id, SourceCursor.source_key == source_key
+        )
+    )
+    if row is not None:
+        return row
+    try:
+        with db.begin_nested():
+            row = SourceCursor(lane_id=lane_id, source_key=source_key, cursor={})
+            db.add(row)
+            db.flush()
+        return row
+    except IntegrityError:
+        # Another concurrent run created it first — re-read.
+        return db.scalar(
+            select(SourceCursor).where(
+                SourceCursor.lane_id == lane_id, SourceCursor.source_key == source_key
+            )
+        )
+
+
 def _suppressed_domains(db: Session) -> set[str]:
     out: set[str] = set()
     for s in db.scalars(select(Suppression)).all():
         val = s.email_or_domain.strip().lower()
         out.add(val.split("@")[-1] if "@" in val else val)
     return out
+
+
+def merge_leads(db: Session, winner: Lead, loser: Lead) -> None:
+    """Fold ``loser`` into ``winner``: reassign all child rows, then delete loser.
+
+    Used by dedup hardening to collapse a name-only lead into the domain-keyed one
+    for the same company (historical split).
+    """
+    if winner.id == loser.id:
+        return
+    # Keep the richer fields.
+    winner.website = winner.website or loser.website
+    winner.domain = winner.domain or loser.domain
+    winner.location = winner.location or loser.location
+    for model in _LEAD_CHILDREN:
+        db.execute(update(model).where(model.lead_id == loser.id).values(lead_id=winner.id))
+    db.delete(loser)
+    db.flush()
+
+
+def _resolve_lead(db: Session, lane_id: int, company: str, domain: str | None) -> Lead | None:
+    """Find the existing lead for this company, matching across key types (§dedup).
+
+    Strong match on domain; otherwise match on normalised name (so a no-website
+    hit folds into an existing domain-keyed lead, and vice-versa).
+    """
+    norm = normalize_name(company)
+    if domain:
+        lead = db.scalar(select(Lead).where(Lead.lane_id == lane_id, Lead.domain == domain))
+        if lead is not None:
+            # Fold any historical name-only duplicates of the same company.
+            dups = db.scalars(
+                select(Lead).where(
+                    Lead.lane_id == lane_id,
+                    Lead.norm_name == norm,
+                    Lead.domain.is_(None),
+                    Lead.id != lead.id,
+                )
+            ).all()
+            for d in dups:
+                merge_leads(db, lead, d)
+            return lead
+    matches = db.scalars(
+        select(Lead).where(Lead.lane_id == lane_id, Lead.norm_name == norm)
+    ).all()
+    if matches:
+        return next((m for m in matches if m.domain), matches[0])
+    return None
 
 
 def _ingest_candidate(
@@ -50,13 +137,12 @@ def _ingest_candidate(
     counts: dict[str, int],
 ) -> Lead:
     domain = extract_domain(cand.website)
-    key = compute_dedupe_key(cand.company_name, domain)
+    norm = normalize_name(cand.company_name)
 
-    lead = cache.get(key)
+    # In-run cache keyed by domain AND name so two hits for one company converge.
+    lead = (cache.get(f"d:{domain}") if domain else None) or cache.get(f"n:{norm}")
     if lead is None:
-        lead = db.scalar(
-            select(Lead).where(Lead.lane_id == lane_id, Lead.dedupe_key == key)
-        )
+        lead = _resolve_lead(db, lane_id, cand.company_name, domain)
 
     if lead is None:
         lead = Lead(
@@ -65,22 +151,27 @@ def _ingest_candidate(
             website=cand.website,
             domain=domain,
             location=cand.location,
+            norm_name=norm,
             stage=LeadStage.SOURCED,
             status=LeadStatus.SOURCED,
-            dedupe_key=key,
+            dedupe_key=compute_dedupe_key(cand.company_name, domain),
         )
         db.add(lead)
         db.flush()  # assign id
         _add_activity(db, lead.id, ActivityType.LEAD_CREATED, {"source": cand.source_key})
         counts["created"] += 1
     else:
-        # Merge: fill missing fields; union is richer than any single source.
+        # Upgrade a name-only lead to domain-keyed once we learn its website.
+        if domain and not lead.domain:
+            lead.domain = domain
+            lead.website = lead.website or cand.website
+            lead.dedupe_key = compute_dedupe_key(cand.company_name, domain)
         if not lead.website and cand.website:
             lead.website = cand.website
-        if not lead.domain and domain:
-            lead.domain = domain
         if not lead.location and cand.location:
             lead.location = cand.location
+        if not lead.norm_name:
+            lead.norm_name = norm
         counts["merged"] += 1
 
     db.add(
@@ -96,7 +187,9 @@ def _ingest_candidate(
         db, lead.id, ActivityType.SOURCE_HIT_ADDED,
         {"source": cand.source_key, "ref": cand.source_ref},
     )
-    cache[key] = lead
+    if lead.domain:
+        cache[f"d:{lead.domain}"] = lead
+    cache[f"n:{lead.norm_name}"] = lead
     return lead
 
 
@@ -127,9 +220,16 @@ def _run(db: Session, job: Job) -> dict:
             src_params["entries"] = manual_entries
         job.message = f"Fetching from {src.key}…"
         db.commit()
+
+        # Load (or race-safely create) the per-(lane, source) resume cursor.
+        cur_row = _get_or_create_cursor(db, lane.id, src.key)
+        cursor = dict(cur_row.cursor or {})
+
         fetched = adapter.fetch(
-            src_params, limit_per_source, lane.config, force_fixtures=force_fixtures
+            src_params, limit_per_source, lane.config,
+            cursor=cursor, force_fixtures=force_fixtures,
         )
+        cur_row.cursor = cursor  # adapter advanced it in place; persist for next run
         candidates.extend(fetched)
         by_source[src.key] = len(fetched)
         job.message = f"Fetched {len(fetched)} from {src.key}"
@@ -153,7 +253,10 @@ def _run(db: Session, job: Job) -> dict:
     job.message = "Qualifying…"
     db.commit()
     qualified_leads: list[Lead] = []
-    for lead in cache.values():
+    # The cache stores each lead under both a domain and a name key — dedupe to
+    # unique leads (and drop any merged-away leads no longer in the session).
+    unique_leads = list({lead.id: lead for lead in cache.values() if lead in db}.values())
+    for lead in unique_leads:
         if lead.reject_overridden:
             continue
         result = qualify(
@@ -260,3 +363,36 @@ def execute_source_job(job_id: int) -> None:
                 job.error = str(exc)
                 job.finished_at = _now()
                 db.commit()
+
+
+def run_scheduled_sourcing() -> None:
+    """Cron entrypoint: run an incremental source pull for every active lane.
+
+    No-op unless enabled in settings. Each lane's run resumes from its saved
+    cursors, so this keeps the funnel growing without re-scanning.
+    """
+    from app.db import SessionLocal
+    from app.services.app_settings import get_sourcing_settings
+
+    with SessionLocal() as db:
+        cfg = get_sourcing_settings(db)
+        if not cfg.enabled:
+            log.info("scheduled sourcing disabled; skipping")
+            return
+        lane_ids = [
+            lane.id for lane in db.scalars(select(Lane).where(Lane.is_active.is_(True))).all()
+        ]
+
+    log.info("scheduled sourcing: %d active lanes (limit %d)", len(lane_ids), cfg.limit)
+    for lane_id in lane_ids:
+        with SessionLocal() as db:
+            job = Job(
+                type=JobType.SOURCE_RUN,
+                lane_id=lane_id,
+                status=JobStatus.QUEUED,
+                params={"limit_per_source": cfg.limit},
+            )
+            db.add(job)
+            db.commit()
+            job_id = job.id
+        execute_source_job(job_id)

@@ -236,6 +236,12 @@ export interface SendingSettings {
   max_spacing_seconds: number;
 }
 
+export interface SourcingSettings {
+  enabled: boolean;
+  hour: number;
+  limit: number;
+}
+
 export interface Suppression {
   id: number;
   email_or_domain: string;

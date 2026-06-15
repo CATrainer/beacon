@@ -89,9 +89,28 @@ docs/                  SETUP, DEPLOYMENT, MAINTENANCE
 
 `users`, `lanes`, `jobs`, `leads` (+ `source_hits`, `research_briefs`,
 `geo_checks`, `contacts`, `evidence`, `emails`, `activity_log`), `suppression`,
-`oauth_credentials`, `app_settings`. A lead carries
+`oauth_credentials`, `app_settings`, `source_cursors`. A lead carries
 funnel `stage` and CRM `status` independently, sub-scores in `score_breakdown`
 JSONB, and a `dedupe_key` (unique per lane).
+
+## Sourcing & dedup (post-MVP hardening)
+
+- **Dedup**: one Lead per company per lane. Matched on `domain` (strong) or
+  `norm_name` (normalised company name) so a no-website hit folds into a
+  domain-keyed lead and vice-versa. `merge_leads()` reassigns all child rows when
+  collapsing a historical split. See `app/services/sourcing.py` `_resolve_lead` /
+  `_ingest_candidate`. Re-running sources is idempotent.
+- **Incremental sourcing**: each (lane, source) has a `source_cursors` row;
+  adapters advance it in place (CQC = page, Places = combo + page token) so every
+  run pulls NEW records instead of re-scanning. Cursor get-or-create is race-safe
+  (worker runs jobs concurrently, `max_jobs`).
+- **Scheduled sourcing**: arq cron (`scheduled_sourcing_cron` in `worker.py`)
+  fires daily at `SCHEDULED_SOURCING_HOUR`; the job no-ops unless enabled
+  (Settings → Scheduled sourcing, `app_settings` key `sourcing`). Hour is fixed at
+  worker start; enabled/limit are live-editable.
+- Known limitation: concurrent source runs for the *same* lane do redundant work
+  (dedup still prevents duplicate leads). Cross-lane dedup is intentionally not
+  done (lanes are separate segments).
 
 ## Current state
 

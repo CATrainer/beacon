@@ -46,54 +46,67 @@ class GooglePlacesAdapter(SourceAdapter):
             "X-Goog-FieldMask": _FIELD_MASK,
         }
 
-    def _fetch_live(self, source_params: dict, limit: int, lane_config: dict) -> list[RawCandidate]:
+    def _fetch_live(
+        self, source_params: dict, limit: int, lane_config: dict, cursor: dict
+    ) -> list[RawCandidate]:
         terms = source_params.get("search_terms", []) or []
         towns = lane_config.get("town_list", []) or [None]
-        if not terms:
+        combos = [(t, town) for t in terms for town in towns]
+        if not combos:
             raise AdapterError("google_places: no search_terms configured for this lane")
 
+        # Resume from the saved combo + page token so each run pulls new results.
+        i = int(cursor.get("combo_index", 0)) % len(combos)
+        page_token = cursor.get("page_token")
         seen: set[str] = set()
         out: list[RawCandidate] = []
+        combos_done = 0
 
-        for term in terms:
-            for town in towns:
+        while combos_done < len(combos) and len(out) < limit:
+            term, town = combos[i]
+            query = f"{term} in {town}" if town else term
+            body = {"textQuery": query, "regionCode": "GB", "maxResultCount": 20}
+            if page_token:
+                body["pageToken"] = page_token
+            try:
+                data = post_json(_SEARCH_URL, json_body=body, headers=self._headers())
+            except Exception as exc:  # noqa: BLE001
+                raise AdapterError(f"places search '{query}' failed: {exc}") from exc
+
+            for place in data.get("places", []):
+                place_id = place.get("id")
+                if not place_id or place_id in seen:
+                    continue
+                seen.add(place_id)
+                name = (place.get("displayName") or {}).get("text") or "Unknown"
+                out.append(
+                    RawCandidate(
+                        company_name=name,
+                        source_key=self.key,
+                        website=place.get("websiteUri"),
+                        address=place.get("formattedAddress"),
+                        location=town,
+                        source_ref=place_id,
+                        raw_meta={
+                            "rating": place.get("rating"),
+                            "review_count": place.get("userRatingCount"),
+                            "primary_type": (place.get("primaryTypeDisplayName") or {}).get("text"),
+                            "search_query": query,
+                        },
+                    )
+                )
                 if len(out) >= limit:
-                    return out
-                query = f"{term} in {town}" if town else term
-                try:
-                    data = post_json(
-                        _SEARCH_URL,
-                        json_body={"textQuery": query, "regionCode": "GB", "maxResultCount": 20},
-                        headers=self._headers(),
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    raise AdapterError(f"places search '{query}' failed: {exc}") from exc
+                    break
 
-                for place in data.get("places", []):
-                    place_id = place.get("id")
-                    if not place_id or place_id in seen:
-                        continue
-                    seen.add(place_id)
-                    name = (place.get("displayName") or {}).get("text") or "Unknown"
-                    out.append(
-                        RawCandidate(
-                            company_name=name,
-                            source_key=self.key,
-                            website=place.get("websiteUri"),
-                            address=place.get("formattedAddress"),
-                            location=town,
-                            source_ref=place_id,
-                            raw_meta={
-                                "rating": place.get("rating"),
-                                "review_count": place.get("userRatingCount"),
-                                "primary_type": (place.get("primaryTypeDisplayName") or {}).get(
-                                    "text"
-                                ),
-                                "search_query": query,
-                            },
-                        )
-                    )
-                    if len(out) >= limit:
-                        return out
-        log.info("google_places: %d candidates", len(out))
+            next_token = data.get("nextPageToken")
+            if next_token and len(out) < limit:
+                page_token = next_token  # more pages on this same combo
+            else:
+                i = (i + 1) % len(combos)  # advance to the next combo
+                page_token = None
+                combos_done += 1
+
+        cursor["combo_index"] = i
+        cursor["page_token"] = page_token
+        log.info("google_places: %d candidates; next combo_index=%s", len(out), i)
         return out

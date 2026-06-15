@@ -19,7 +19,9 @@ class ManualPasteAdapter(SourceAdapter):
     def available(self, source_params: dict) -> bool:
         return True  # data is supplied directly; never needs fixtures
 
-    def _fetch_live(self, source_params: dict, limit: int, lane_config: dict) -> list[RawCandidate]:
+    def _fetch_live(
+        self, source_params: dict, limit: int, lane_config: dict, cursor: dict
+    ) -> list[RawCandidate]:
         entries = source_params.get("entries", []) or []
         out: list[RawCandidate] = []
         for e in entries[:limit]:

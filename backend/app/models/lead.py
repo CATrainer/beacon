@@ -52,6 +52,9 @@ class Lead(Base, TimestampMixin):
     website: Mapped[str | None] = mapped_column(String(500))
     domain: Mapped[str | None] = mapped_column(String(255), index=True)
     location: Mapped[str | None] = mapped_column(String(300))
+    # Normalised company name (suffixes/punctuation stripped) for cross-key dedupe
+    # — lets a no-website hit match an existing domain-keyed lead by name.
+    norm_name: Mapped[str] = mapped_column(String(300), default="", index=True, nullable=False)
 
     stage: Mapped[LeadStage] = mapped_column(
         _enum(LeadStage, "lead_stage"), default=LeadStage.SOURCED, index=True, nullable=False
@@ -239,6 +242,28 @@ class Suppression(Base):
     reason: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
+    )
+
+
+class SourceCursor(Base, TimestampMixin):
+    """Per-(lane, source) resume cursor for incremental sourcing.
+
+    Lets each run pull genuinely new records (e.g. the next CQC page / Places page
+    token) instead of re-scanning from the start. Shape of ``cursor`` is
+    adapter-specific.
+    """
+
+    __tablename__ = "source_cursors"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lane_id: Mapped[int] = mapped_column(
+        ForeignKey("lanes.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source_key: Mapped[str] = mapped_column(String(60), nullable=False)
+    cursor: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("lane_id", "source_key", name="uq_source_cursor_lane_source"),
     )
 
 

@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     # Stage 4 (expensive AI) auto-runs only on the top-N by Stage-3 score (§2).
     research_top_n_default: int = 50
 
+    # Scheduled incremental sourcing (worker cron). Hour is fixed at worker start;
+    # enabled/limit are operator-overridable via app_settings.
+    scheduled_sourcing_enabled: bool = False
+    scheduled_sourcing_hour: int = 2  # UTC
+    scheduled_sourcing_limit: int = 50
+
     # --- Source adapters ----------------------------------------------------
     cqc_subscription_key: str = ""
     google_places_api_key: str = ""

@@ -47,14 +47,18 @@ class CQCAdapter(SourceAdapter):
         haystack.append(str(detail.get("type", "")).lower())
         return any(w in h for w in wanted_lc for h in haystack if h)
 
-    def _fetch_live(self, source_params: dict, limit: int, lane_config: dict) -> list[RawCandidate]:
+    def _fetch_live(
+        self, source_params: dict, limit: int, lane_config: dict, cursor: dict
+    ) -> list[RawCandidate]:
         wanted = source_params.get("service_types", []) or []
         out: list[RawCandidate] = []
-        page = 1
+        # Resume from the saved page so each run pulls new records (incremental).
+        page = int(cursor.get("next_page", 1))
         per_page = 200
         # Bound detail calls so a run can't fan out unboundedly (rate-limited 1/s).
         max_details = max(limit * 6, 60)
         details_done = 0
+        total_pages = None
 
         while len(out) < limit and details_done < max_details:
             try:
@@ -68,6 +72,7 @@ class CQCAdapter(SourceAdapter):
 
             locations = listing.get("locations", [])
             if not locations:
+                page = 0  # past the end (or stale cursor) → wrap to 1 next run
                 break
 
             for loc in locations:
@@ -119,8 +124,16 @@ class CQCAdapter(SourceAdapter):
 
             total_pages = listing.get("totalPages")
             if total_pages and page >= total_pages:
+                page = 0  # will wrap to 1 below — start over next run
                 break
             page += 1
 
-        log.info("CQC: %d candidates after scanning %d details", len(out), details_done)
+        # Save resume point for the next run; wrap to page 1 when the register ends.
+        cursor["next_page"] = page if page >= 1 else 1
+        if total_pages:
+            cursor["total_pages"] = total_pages
+        log.info(
+            "CQC: %d candidates after scanning %d details; next_page=%s",
+            len(out), details_done, cursor["next_page"],
+        )
         return out

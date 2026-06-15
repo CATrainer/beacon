@@ -65,7 +65,9 @@ class DirectoryIngestAdapter(SourceAdapter):
         # Cap to keep token cost bounded; directories are link-dense near the top.
         return text[:20000]
 
-    def _fetch_live(self, source_params: dict, limit: int, lane_config: dict) -> list[RawCandidate]:
+    def _fetch_live(
+        self, source_params: dict, limit: int, lane_config: dict, cursor: dict
+    ) -> list[RawCandidate]:
         urls = source_params.get("urls", []) or []
         membership_boost = source_params.get("membership_boost", {})
         out: list[RawCandidate] = []
