@@ -11,6 +11,66 @@ const STATUS_OPTIONS = [
   "call_booked", "audit_sold", "delivered", "retainer", "lost", "rejected", "suppressed",
 ];
 
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+const QUEUED_STATUSES = [
+  "queued", "sent", "replied", "call_booked", "audit_sold", "delivered", "retainer",
+];
+
+function StepBar({ lead }: { lead: LeadDetailType }) {
+  const researched = !!lead.research_brief;
+  const geoChecked = lead.geo_checks.some((g) => g.engine !== "none");
+  const drafted = lead.emails.length > 0;
+  const queued = QUEUED_STATUSES.includes(lead.status);
+  const steps = [
+    { label: "Sourced", done: true },
+    { label: "Qualified", done: true },
+    { label: "Scored", done: lead.fit_score != null },
+    { label: "Researched", done: researched },
+    { label: "GEO", done: geoChecked },
+    { label: "Drafted", done: drafted },
+    { label: "Queued", done: queued },
+  ];
+  let next: { text: string; id: string } | null = null;
+  if (!researched) next = { text: "Research this lead", id: "research" };
+  else if (!geoChecked) next = { text: "Run the GEO check", id: "geo" };
+  else if (!drafted) next = { text: "Generate the email drafts", id: "prep" };
+  else if (!queued) next = { text: "Review, copy & approve", id: "prep" };
+
+  return (
+    <div className="card mt-3 p-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {steps.map((s, i) => (
+          <span key={s.label} className="flex items-center gap-1.5">
+            <span
+              className={`badge ${
+                s.done ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              {s.done ? "✓" : "○"} {s.label}
+            </span>
+            {i < steps.length - 1 && <span className="text-slate-300">›</span>}
+          </span>
+        ))}
+      </div>
+      {next ? (
+        <div className="mt-2 flex items-center gap-2 text-sm">
+          <span className="text-slate-500">Next step:</span>
+          <button className="btn-primary" onClick={() => scrollToId(next!.id)}>
+            {next.text} ↓
+          </button>
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-green-700">
+          Ready to send — copy the email below into Gmail.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function confidenceBadge(c: EmailConfidence | null) {
   if (!c) return <span className="badge bg-slate-100 text-slate-500">LinkedIn-first</span>;
   const tone =
@@ -200,6 +260,8 @@ export function LeadDetail() {
         </div>
       )}
 
+      {lead.stage !== "rejected" && <StepBar lead={lead} />}
+
       <ScoreBreakdown lead={lead} />
 
       {/* Contact */}
@@ -242,7 +304,7 @@ export function LeadDetail() {
       </div>
 
       {/* Research brief */}
-      <div className="card mt-4 p-4">
+      <div id="research" className="card mt-4 scroll-mt-4 p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Research brief
@@ -318,7 +380,7 @@ export function LeadDetail() {
       </div>
 
       {/* GEO pre-check (triage only) */}
-      <div className="card mt-4 p-4">
+      <div id="geo" className="card mt-4 scroll-mt-4 p-4">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             GEO gap pre-check
@@ -395,7 +457,9 @@ export function LeadDetail() {
         )}
       </div>
 
-      <PrepChecklist lead={lead} />
+      <div id="prep" className="scroll-mt-4">
+        <PrepChecklist lead={lead} />
+      </div>
 
       <h2 className="mt-5 mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
         Source hits ({lead.source_hits.length})

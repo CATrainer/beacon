@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Lane, LeadListResponse, LeadStage } from "../types";
 
@@ -49,7 +49,8 @@ export function Queue() {
         <div>
           <h1 className="text-lg font-bold">Ranked queue</h1>
           <p className="text-sm text-slate-500">
-            Leads sorted by final score. Sourcing that fills this queue arrives in the next slice.
+            Best leads first (final score = fit × gap × reachability). Click a lead to research,
+            GEO-check and draft.
           </p>
         </div>
       </div>
@@ -124,8 +125,11 @@ export function Queue() {
             {!isLoading && (data?.items.length ?? 0) === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
-                  No leads yet. Configure a lane and run a source (coming in Slice 2) to populate
-                  the queue.
+                  No leads match.{" "}
+                  <Link to="/lanes" className="text-accent hover:underline">
+                    Open a lane and run a source
+                  </Link>{" "}
+                  to fill the queue.
                 </td>
               </tr>
             )}

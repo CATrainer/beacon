@@ -80,7 +80,7 @@ frontend/
     types.ts           API types (mirror backend schemas)
     components/        Layout, JobProgress, RunSources, ManualAdd, ReScore,
                        ResearchLane, GeoCheckLane, PrepChecklist
-    pages/             Login, Queue, Pipeline, Lanes, LaneEditor, LeadDetail, Settings
+    pages/             Home, Login, Queue, Pipeline, Lanes, LaneEditor, LeadDetail, Settings
 docker-compose.yml
 docs/                  SETUP, DEPLOYMENT, MAINTENANCE
 ```

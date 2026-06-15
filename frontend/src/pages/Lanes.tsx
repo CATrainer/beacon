@@ -63,15 +63,21 @@ export function Lanes() {
                 ))}
             </div>
 
-            <div className="mt-4 flex flex-wrap items-start gap-2">
+            <div className="mt-4 border-t border-line pt-3">
+              <p className="label">Pipeline — run left to right</p>
+              <div className="flex flex-wrap items-start gap-2">
+                <RunSources laneId={lane.id} />
+                <ManualAdd laneId={lane.id} />
+                <ResearchLane laneId={lane.id} />
+                <GeoCheckLane laneId={lane.id} />
+                <ReScore laneId={lane.id} />
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-start gap-2 border-t border-line pt-3">
               <Link to={`/lanes/${lane.id}`} className="btn-ghost">
-                Edit
+                Edit lane
               </Link>
-              <RunSources laneId={lane.id} />
-              <ManualAdd laneId={lane.id} />
-              <ReScore laneId={lane.id} />
-              <ResearchLane laneId={lane.id} />
-              <GeoCheckLane laneId={lane.id} />
               <button
                 className="btn-danger"
                 onClick={() => {

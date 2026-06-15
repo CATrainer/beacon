@@ -5,10 +5,11 @@ import { useAuth } from "../lib/auth";
 import type { IntegrationStatus } from "../types";
 
 const navItems = [
-  { to: "/queue", label: "Queue" },
-  { to: "/pipeline", label: "Pipeline" },
-  { to: "/lanes", label: "Lanes" },
-  { to: "/settings", label: "Settings" },
+  { to: "/", label: "Home", end: true },
+  { to: "/queue", label: "Queue", end: false },
+  { to: "/pipeline", label: "Pipeline", end: false },
+  { to: "/lanes", label: "Lanes", end: false },
+  { to: "/settings", label: "Settings", end: false },
 ];
 
 export function Layout() {
@@ -41,6 +42,7 @@ export function Layout() {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.end}
               className={({ isActive }) =>
                 `block rounded-md px-3 py-1.5 text-sm font-medium ${
                   isActive ? "bg-accent text-white" : "text-ink hover:bg-canvas"

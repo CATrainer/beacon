@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useAuth } from "./lib/auth";
+import { Home } from "./pages/Home";
 import { LaneEditor } from "./pages/LaneEditor";
 import { Lanes } from "./pages/Lanes";
 import { LeadDetail } from "./pages/LeadDetail";
@@ -34,7 +35,7 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/queue" replace />} />
+        <Route index element={<Home />} />
         <Route path="queue" element={<Queue />} />
         <Route path="pipeline" element={<Pipeline />} />
         <Route path="leads/:id" element={<LeadDetail />} />
