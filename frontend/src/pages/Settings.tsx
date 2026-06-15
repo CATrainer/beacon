@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Info } from "../components/Info";
 import { JobProgress } from "../components/JobProgress";
 import { ApiError, api } from "../lib/api";
+import { TIP } from "../lib/glossary";
 import type {
   GmailStatusInfo,
   Job,
@@ -82,7 +84,7 @@ function SendingSection() {
 
   return (
     <div className="card p-4">
-      <h2 className="mb-2 font-semibold">Sending</h2>
+      <h2 className="mb-2 font-semibold">Sending <Info tip={TIP.sendingMode} /></h2>
       <p className="mb-3 text-xs text-slate-500">
         Mode: <b>{merged.mode}</b> (Gmail-draft — creates drafts for you to review &amp; send).
       </p>
@@ -96,11 +98,11 @@ function SendingSection() {
           />
         </label>
         <label className="text-sm">
-          <span className="label">Daily cap</span>
+          <span className="label">Daily cap <Info tip={TIP.dailyCap} /></span>
           <input type="number" className="input" value={merged.daily_cap} onChange={num("daily_cap")} />
         </label>
         <label className="text-sm">
-          <span className="label">Window start (UTC hour)</span>
+          <span className="label">Window start (UTC hour) <Info tip={TIP.sendWindow} /></span>
           <input
             type="number"
             className="input"
@@ -156,7 +158,7 @@ function SourcingSection() {
 
   return (
     <div className="card p-4">
-      <h2 className="mb-1 font-semibold">Scheduled sourcing</h2>
+      <h2 className="mb-1 font-semibold">Scheduled sourcing <Info tip={TIP.scheduledSourcing} /></h2>
       <p className="mb-3 text-xs text-slate-500">
         When on, the worker tops up every active lane once a day — pulling{" "}
         <em>new</em> records each run (it resumes where the last run left off), so the queue keeps
@@ -230,7 +232,7 @@ function SuppressionSection() {
 
   return (
     <div className="card p-4">
-      <h2 className="mb-1 font-semibold">Suppression list</h2>
+      <h2 className="mb-1 font-semibold">Suppression list <Info tip={TIP.suppression} /></h2>
       <p className="mb-3 text-xs text-slate-500">
         Emails or domains here are never contacted — checked at send time. Honour opt-outs here.
       </p>

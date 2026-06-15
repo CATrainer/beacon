@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Info } from "../components/Info";
+import { TIP } from "../lib/glossary";
 import { api } from "../lib/api";
 import type { Lane, LeadListResponse, LeadStage } from "../types";
 
@@ -101,17 +103,27 @@ export function Queue() {
         />
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-canvas text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-3 py-2">Company</th>
               <th className="px-3 py-2">Location</th>
-              <th className="px-3 py-2">Stage</th>
-              <th className="px-3 py-2 text-center">Fit</th>
-              <th className="px-3 py-2 text-center">Gap</th>
-              <th className="px-3 py-2 text-center">Reach</th>
-              <th className="px-3 py-2 text-center">Final</th>
+              <th className="px-3 py-2">
+                Stage <Info tip={TIP.stage} />
+              </th>
+              <th className="px-3 py-2 text-center">
+                Fit <Info tip={TIP.fit} />
+              </th>
+              <th className="px-3 py-2 text-center">
+                Gap <Info tip={TIP.gap} />
+              </th>
+              <th className="px-3 py-2 text-center">
+                Reach <Info tip={TIP.reachability} />
+              </th>
+              <th className="px-3 py-2 text-center">
+                Final <Info tip={TIP.final} />
+              </th>
             </tr>
           </thead>
           <tbody>

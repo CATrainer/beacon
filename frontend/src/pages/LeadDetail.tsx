@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Info } from "../components/Info";
 import { JobProgress } from "../components/JobProgress";
 import { PrepChecklist } from "../components/PrepChecklist";
 import { ApiError, api } from "../lib/api";
+import { TIP, signalTip } from "../lib/glossary";
 import type { Activity, EmailConfidence, Job, LeadDetail as LeadDetailType } from "../types";
 
 const STATUS_OPTIONS = [
@@ -111,16 +113,16 @@ function ScoreBreakdown({ lead }: { lead: LeadDetailType }) {
         </h2>
         <div className="flex gap-3 text-sm">
           <span>
-            Fit <b>{lead.fit_score ?? "—"}</b>
+            Fit <b>{lead.fit_score ?? "—"}</b> <Info tip={TIP.fit} />
           </span>
           <span>
-            Gap <b>{lead.gap_score ?? "—"}</b>
+            Gap <b>{lead.gap_score ?? "—"}</b> <Info tip={TIP.gap} />
           </span>
           <span>
-            Reach <b>{lead.reachability_score ?? "—"}</b>
+            Reach <b>{lead.reachability_score ?? "—"}</b> <Info tip={TIP.reachability} />
           </span>
           <span className="text-accent">
-            Final <b>{lead.final_score ?? "—"}</b>
+            Final <b>{lead.final_score ?? "—"}</b> <Info tip={TIP.final} />
           </span>
         </div>
       </div>
@@ -129,7 +131,9 @@ function ScoreBreakdown({ lead }: { lead: LeadDetailType }) {
           const s = signals[name];
           return (
             <div key={name} className="flex items-center gap-2 text-xs">
-              <span className="w-40 shrink-0 text-slate-600">{name}</span>
+              <span className="w-40 shrink-0 text-slate-600">
+                {name} <Info tip={signalTip(name)} />
+              </span>
               <div className="h-2 flex-1 overflow-hidden rounded bg-canvas">
                 <div
                   className="h-full bg-accent"
@@ -268,7 +272,7 @@ export function LeadDetail() {
       <div className="card mt-4 p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Contact
+            Contact <Info tip={TIP.emailConfidence} />
           </h2>
           {lead.contact && confidenceBadge(lead.contact.email_confidence)}
         </div>
@@ -383,7 +387,7 @@ export function LeadDetail() {
       <div id="geo" className="card mt-4 scroll-mt-4 p-4">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            GEO gap pre-check
+            GEO gap pre-check <Info tip={TIP.geo} />
           </h2>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1 text-xs text-slate-500">
